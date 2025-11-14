@@ -5,9 +5,8 @@ import OpenAI from 'openai';
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
-const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' })
-  : null;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+
 
 const openai = openaiApiKey
   ? new OpenAI({ apiKey: openaiApiKey })

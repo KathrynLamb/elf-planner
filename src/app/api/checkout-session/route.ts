@@ -5,11 +5,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripePriceId = process.env.STRIPE_PRICE_ID;
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
-const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, {
-      apiVersion: '2024-06-20',
-    })
-  : null;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 export async function POST(req: Request) {
   try {
