@@ -21,7 +21,7 @@ export default function SiteFooter() {
               Terms
             </a>
             <a
-              href="mailto:katylamb@gmail.com"
+              href="/contact"
               className="hover:text-slate-300 hover:underline"
             >
               Contact

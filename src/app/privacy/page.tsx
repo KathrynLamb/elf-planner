@@ -46,10 +46,10 @@ export default function PrivacyPage() {
             <br />
             <span className="font-medium">Contact email:</span>{' '}
             <a
-              href="mailto:katylamb@gmail.com"
+              href="mailto:aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-              katylamb@gmail.com
+                aigifts.org
             </a>
           </p>
         </section>
@@ -206,10 +206,10 @@ export default function PrivacyPage() {
           <p className="text-slate-300">
             To exercise these rights, please email{' '}
             <a
-              href="mailto:katylamb@gmail.com"
+              href="mailto:aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-              katylamb@gmail.com
+aigifts.org
             </a>
             .
           </p>
@@ -252,10 +252,10 @@ export default function PrivacyPage() {
             <br />
             Email:{' '}
             <a
-              href="mailto:katylamb@gmail.com"
+              href="mailto:aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-              katylamb@gmail.com
+             aigifts.org
             </a>
           </p>
         </section>
