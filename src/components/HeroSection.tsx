@@ -40,6 +40,8 @@ export default function HeroSection() {
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+      console.log("Session id", sessionId)
+
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(
           'elf-current-session',
@@ -64,6 +66,9 @@ export default function HeroSection() {
         }),
       });
 
+
+      console.log("res", res)
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.message || 'Error talking to PayPal.');
@@ -73,6 +78,8 @@ export default function HeroSection() {
       if (!data.approveUrl) {
         throw new Error('No PayPal approval URL returned.');
       }
+
+      console.log("dataa", data)
 
       // 3) Open PayPal in a new tab
       window.open(data.approveUrl, '_blank', 'noopener,noreferrer');

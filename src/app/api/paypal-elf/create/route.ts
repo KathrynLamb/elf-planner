@@ -13,19 +13,28 @@ const BASE =
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
 
+    console.log("BASE", BASE)
+
 const APPROVE_BASE =
   ENV === 'live'
     ? 'https://www.paypal.com/checkoutnow?token='
     : 'https://www.sandbox.paypal.com/checkoutnow?token=';
 
+    console.log("APPROVE_BASE", APPROVE_BASE)
+
 const CLIENT_ID =
   process.env.PAYPAL_CLIENT_ID ||
   process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
   '';
+
+  console.log('CLIENT_ID', CLIENT_ID)
+
 const CLIENT_SECRET =
   process.env.PAYPAL_CLIENT_SECRET ||
   process.env.PAYPAL_SECRET ||
   '';
+
+  console.log('CLIENT_SECRET', CLIENT_SECRET)
 
 async function getAccessToken(): Promise<string> {
   if (!CLIENT_ID || !CLIENT_SECRET) {
@@ -33,6 +42,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
+  console.log("auth", auth)
 
   const r = await fetch(`${BASE}/v1/oauth2/token`, {
     method: 'POST',
@@ -43,6 +53,8 @@ async function getAccessToken(): Promise<string> {
     body: 'grant_type=client_credentials',
     cache: 'no-store',
   });
+
+  console.log("r", r)
 
   if (!r.ok) {
     const t = await r.text().catch(() => '');
@@ -71,8 +83,11 @@ export async function POST(req: Request) {
     const body = (await req.json()) as CreateBody;
 
     const sessionId = body.sessionId;
+    console.log('sessionId', sessionId)
     const amount = Number(body.amount);
+    console.log('amount', amount)
     const currency = (body.currency || '').toUpperCase() as CreateBody['currency'];
+    console.log('currency', currency)
 
     if (!sessionId) {
       return NextResponse.json(
