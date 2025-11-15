@@ -14,6 +14,15 @@ type ElfSession = {
   vibe: ElfVibe;
 };
 
+// Inside SuccessClient.tsx, near the top:
+type ChatMessage = {
+  id: string;
+  from: 'elf' | 'parent';
+  text: string;
+};
+
+
+
 export default function SuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id') ?? undefined;
@@ -27,6 +36,56 @@ export default function SuccessClient() {
   const [reminderEmail, setReminderEmail] = useState('');
   const [reminderErr, setReminderErr] = useState<null | string>(null);
   const [reminderMsg, setReminderMsg] = useState<null | string>(null);
+
+  // Inside the component:
+const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+const [chatInput, setChatInput] = useState('');
+const [chatLoading, setChatLoading] = useState(false);
+const [hotlineDone, setHotlineDone] = useState(false);
+
+// Kick off the hotline on mount (once we have a sessionId)
+useEffect(() => {
+  if (!sessionId) return;
+  if (chatMessages.length > 0) return;
+
+  let cancelled = false;
+
+  async function startHotline() {
+    try {
+      setChatLoading(true);
+      const res = await fetch('/api/elf-hotline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!res.ok) {
+        console.error('Elf hotline start failed');
+        return;
+      }
+
+      const data = await res.json();
+      if (cancelled) return;
+
+      setChatMessages([
+        {
+          id: 'elf-0',
+          from: 'elf',
+          text: data.reply,
+        },
+      ]);
+      setHotlineDone(data.done ?? false);
+    } finally {
+      if (!cancelled) setChatLoading(false);
+    }
+  }
+
+  startHotline();
+
+  return () => {
+    cancelled = true;
+  };
+}, [sessionId, chatMessages.length]);
 
   // 1) Load session details from Redis via API
   useEffect(() => {
@@ -76,6 +135,50 @@ export default function SuccessClient() {
       cancelled = true;
     };
   }, [sessionId]);
+
+  async function handleSendHotline(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chatInput.trim() || !sessionId) return;
+  
+    const userText = chatInput.trim();
+    setChatInput('');
+  
+    const userMsg: ChatMessage = {
+      id: `parent-${Date.now()}`,
+      from: 'parent',
+      text: userText,
+    };
+  
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatLoading(true);
+  
+    try {
+      const res = await fetch('/api/elf-hotline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message: userText }),
+      });
+  
+      if (!res.ok) {
+        console.error('Elf hotline turn failed');
+        return;
+      }
+  
+      const data = await res.json();
+  
+      const elfMsg: ChatMessage = {
+        id: `elf-${Date.now()}`,
+        from: 'elf',
+        text: data.reply,
+      };
+  
+      setChatMessages((prev) => [...prev, elfMsg]);
+      setHotlineDone(Boolean(data.done));
+    } finally {
+      setChatLoading(false);
+    }
+  }
+  
 
   async function handleGenerate() {
     setError(null);
@@ -369,6 +472,73 @@ export default function SuccessClient() {
           </section>
         )}
       </div>
+
+      <section className="mt-6 space-y-3 border border-slate-700 rounded-2xl p-4 bg-slate-950/70">
+  <h2 className="text-sm font-semibold text-emerald-300 flex items-center gap-2">
+    <span className="text-lg">☎️</span>
+    Elf Hotline with Merry
+  </h2>
+  <p className="text-xs text-slate-300">
+    Merry will ask you a few quick questions, like a cosy phone call, so your Elf plan feels
+    ridiculously personal. Totally optional, but highly recommended.
+  </p>
+
+  <div className="max-h-60 overflow-auto space-y-2 text-sm bg-slate-900/70 border border-slate-700 rounded-xl p-3">
+    {chatMessages.map((m) => (
+      <div
+        key={m.id}
+        className={
+          m.from === 'elf'
+            ? 'text-[13px] text-emerald-100'
+            : 'text-[13px] text-slate-100 text-right'
+        }
+      >
+        {m.from === 'elf' ? (
+          <span className="inline-block rounded-lg bg-emerald-500/10 border border-emerald-500/40 px-3 py-1.5">
+            <strong className="mr-1">Merry:</strong>
+            {m.text}
+          </span>
+        ) : (
+          <span className="inline-block rounded-lg bg-slate-800 px-3 py-1.5">
+            {m.text}
+          </span>
+        )}
+      </div>
+    ))}
+    {chatLoading && (
+      <p className="text-[12px] text-emerald-200">Merry is thinking…</p>
+    )}
+  </div>
+
+  <form onSubmit={handleSendHotline} className="flex gap-2">
+    <input
+      type="text"
+      value={chatInput}
+      onChange={(e) => setChatInput(e.target.value)}
+      placeholder={
+        hotlineDone
+          ? 'Merry has everything she needs – you can generate your plan!'
+          : 'Type what you’d say to Merry on the phone…'
+      }
+      disabled={chatLoading || hotlineDone}
+      className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs disabled:opacity-60"
+    />
+    <button
+      type="submit"
+      disabled={chatLoading || hotlineDone}
+      className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-950 disabled:opacity-60"
+    >
+      Send
+    </button>
+  </form>
+
+  {hotlineDone && (
+    <p className="text-[11px] text-emerald-300">
+      Merry has everything she needs – hit “Generate my 30-day Elf plan” whenever you&apos;re ready.
+    </p>
+  )}
+</section>
+
     </main>
   );
 }

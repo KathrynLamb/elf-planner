@@ -7,129 +7,103 @@ export const runtime = 'nodejs';
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const {
-    sessionId,
-    childName,
-    ageYears,
-    ageRange,
-    startDate,
-    vibe, // 'silly' | 'kind' | 'calm'
-    siblings = [],
-    pets = [],
-    interests = [],
-    energyLevel = 'normal-tired',
-    messTolerance = 'low',
-    bannedProps = [],
-    availableProps = [],
-    notesForElf = '',
-  } = body;
+    const {
+      sessionId,
+      childName,
+      ageYears,
+      ageRange,
+      startDate,
+      vibe, // 'silly' | 'kind' | 'calm'
+      siblings = [],
+      pets = [],
+      interests = [],
+      energyLevel = 'normal-tired',
+      messTolerance = 'low',
+      bannedProps = [],
+      availableProps = [],
+      notesForElf = '',
+    } = body;
 
-  if (!childName || !startDate || !vibe) {
-    return NextResponse.json(
-      { message: 'Missing required Elf details.' },
-      { status: 400 },
-    );
-  }
+    if (!childName || !startDate || !vibe) {
+      return NextResponse.json(
+        { message: 'Missing required Elf details.' },
+        { status: 400 },
+      );
+    }
 
-  // 30-day plan by default
-  const numDays = 30;
+    // 30-day plan by default
+    const numDays = 30;
 
-  const response = await client.responses.create({
-    model: 'gpt-5-mini',
+    const response = await client.responses.create({
+      model: 'gpt-5-mini', // ✅ valid model
 
-    // Structured outputs: use `text.format` with a JSON schema
-    text: {
-      format: {
-        type: 'json_schema',
-        name: 'elf_plan',
-        strict: true,
-        schema: {
-          type: 'object',
-          required: ['planOverview', 'days'],
-          properties: {
-            planOverview: {
-              type: 'string',
-              description:
-                'Short friendly summary for the parent explaining the overall arc, running jokes and how gentle/kind the tone is.',
-            },
-            days: {
-              type: 'array',
-              minItems: numDays,
-              maxItems: numDays,
-              items: {
-                type: 'object',
-                required: [
-                  'day',
-                  'title',
-                  'setup',
-                  'elfNote',
-                  'effortLevel',
-                  'propsNeeded',
-                  'parentTips',
-                  'backupIdea',
-                  'callbacks', 
-                ],
-                properties: {
-                  day: { type: 'integer' },
-                  title: {
-                    type: 'string',
-                    description:
-                      'Fun, short title the parent sees in the plan.',
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'elf_plan',
+          strict: true,
+          schema: {
+            type: 'object',
+            required: ['planOverview', 'days'],
+            properties: {
+              planOverview: {
+                type: 'string',
+                description:
+                  'Short friendly summary for the parent explaining the overall arc, running jokes and how gentle/kind the tone is.',
+              },
+              days: {
+                type: 'array',
+                minItems: numDays,
+                maxItems: numDays,
+                items: {
+                  type: 'object',
+                  required: [
+                    'day',
+                    'title',
+                    'setup',
+                    'elfNote',
+                    'effortLevel',
+                    'propsNeeded',
+                    'parentTips',
+                    'backupIdea',
+                    'callbacks', // must be listed too
+                  ],
+                  properties: {
+                    day: { type: 'integer' },
+                    title: { type: 'string' },
+                    setup: { type: 'string' },
+                    elfNote: { type: 'string' },
+                    effortLevel: {
+                      type: 'string',
+                      enum: ['very-low', 'low', 'medium'],
+                    },
+                    propsNeeded: {
+                      type: 'array',
+                      items: { type: 'string' },
+                    },
+                    parentTips: { type: 'string' },
+                    backupIdea: { type: 'string' },
+                    callbacks: { type: 'string' },
                   },
-                  setup: {
-                    type: 'string',
-                    description:
-                      'Clear, step-by-step description of what the parent does that night. 3–6 sentences max.',
-                  },
-                  elfNote: {
-                    type: 'string',
-                    description:
-                      'Short note written in the Elf’s voice, addressing the child by name. 1–3 sentences.',
-                  },
-                  effortLevel: {
-                    type: 'string',
-                    enum: ['very-low', 'low', 'medium'],
-                  },
-                  propsNeeded: {
-                    type: 'array',
-                    items: { type: 'string' },
-                  },
-                  parentTips: {
-                    type: 'string',
-                    description:
-                      'Extra practical tips, timing hints, or safety notes (e.g. keep away from pets, avoid slippery floors).',
-                  },
-                  backupIdea: {
-                    type: 'string',
-                    description:
-                      'Much quicker, very-low-effort alternative using similar theme, for nights when the parent is exhausted.',
-                  },
-                  callbacks: {
-                    type: 'string',
-                    description:
-                      'Optional: Running joke or reference back to an earlier night or the child’s interests.',
-                  },
+                  additionalProperties: false,
                 },
-                // ✅ THIS is what the error was asking for:
-                additionalProperties: false,
               },
             },
+            additionalProperties: false,
           },
-          // top-level object should also forbid extras
-          additionalProperties: false,
         },
       },
-    },
 
-    input: [
-      {
-        role: 'system',
-        content: [
-          {
-            type: 'input_text',
-            text: `
+      input: [
+        {
+          role: 'system',
+          content: [
+            {
+              type: 'input_text',
+              text: `
 You are "Merry", an expert Elf-on-the-Shelf mischief planner and children’s storyteller.
 Your job is to create a **30-day plan** that feels unbelievably personal, warm, and funny
 for ONE specific child and their family.
@@ -155,50 +129,66 @@ Tone:
 
 Output JSON only. No markdown, no commentary.
 `.trim(),
-          },
-        ],
-      },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: JSON.stringify(
+                {
+                  sessionId,
+                  childName,
+                  ageYears,
+                  ageRange,
+                  startDate,
+                  vibe,
+                  siblings,
+                  pets,
+                  interests,
+                  energyLevel,
+                  messTolerance,
+                  bannedProps,
+                  availableProps,
+                  notesForElf,
+                  numDays,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        },
+      ],
+    });
+
+    // ✅ Easiest way: structured output comes back as a JSON string here
+    const rawText = response.output_text;
+    console.log('[generate-plan] rawText snippet:', rawText?.slice(0, 200));
+
+    if (!rawText) {
+      throw new Error('Model returned empty output_text');
+    }
+
+    let planJson: unknown;
+    try {
+      planJson = JSON.parse(rawText);
+    } catch (err) {
+      console.error('[generate-plan] JSON.parse failed, returning raw text', err);
+      planJson = rawText; // worst case: let client see the raw text
+    }
+
+    return NextResponse.json({ plan: planJson });
+  } catch (error: any) {
+    console.error('[generate-plan] error', error);
+    return NextResponse.json(
       {
-        role: 'user',
-        content: [
-          {
-            type: 'input_text',
-            text: JSON.stringify(
-              {
-                sessionId,
-                childName,
-                ageYears,
-                ageRange,
-                startDate,
-                vibe,
-                siblings,
-                pets,
-                interests,
-                energyLevel,
-                messTolerance,
-                bannedProps,
-                availableProps,
-                notesForElf,
-                numDays,
-              },
-              null,
-              2,
-            ),
-          },
-        ],
+        message:
+          error?.message || 'Something went wrong generating your Elf plan.',
       },
-    ],
-  });
-
-  // JSON will come back as a string in `.text`
-  const rawText = (response as any).output?.[0]?.content?.[0]?.text as string;
-  let planJson: unknown = null;
-
-  try {
-    planJson = JSON.parse(rawText);
-  } catch {
-    planJson = rawText;
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json({ plan: planJson });
 }
