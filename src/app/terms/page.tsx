@@ -45,10 +45,10 @@ export default function TermsPage() {
             <br />
             <span className="font-medium">Contact email:</span>{' '}
             <a
-              href="mailto:aigifts.org"
+              href="mailto:support@aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-         aigifts.org
+    	support@aigifts.org
             </a>
           </p>
         </section>
@@ -104,10 +104,10 @@ export default function TermsPage() {
           <p className="text-slate-300">
             To request a refund, simply reply to your plan email or contact me at{' '}
             <a
-              href="mailto:aigifts.org"
+              href="mailto:support@aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-      aigifts.org
+	support@aigifts.org
             </a>{' '}
             with your order details. Refunds are processed to the original
             payment method where possible.
@@ -210,10 +210,10 @@ export default function TermsPage() {
             <br />
             Email:{' '}
             <a
-              href="mailto:aigifts.org"
+              href="mailto:support@aigifts.org"
               className="text-emerald-300 underline underline-offset-2"
             >
-         aigifts.org
+ 	support@aigifts.org
             </a>
           </p>
         </section>

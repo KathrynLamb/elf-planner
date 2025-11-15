@@ -32,10 +32,10 @@ export default function ContactPage() {
             <p className="mt-2 text-slate-300">
               <span className="font-medium">Email:</span>{' '}
               <a
-                href="mailto:aigifts.org"
+                href="mailto:	support@aigifts.org"
                 className="text-emerald-300 underline underline-offset-2"
               >
-         aigifts.org
+   	support@aigifts.org
               </a>
             </p>
             <p className="mt-2 text-xs text-slate-400">
