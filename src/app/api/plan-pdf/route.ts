@@ -1,6 +1,7 @@
+// src/app/api/plan-pdf/route.ts
 import { NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from 'pdf-lib';
 
 export const runtime = 'nodejs';
 
@@ -42,10 +43,18 @@ export async function GET(req: Request) {
       plan,
     });
 
-    const filenameSafeName = childName.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const filenameSafeName = childName
+      .replace(/[^a-z0-9]+/gi, '-')
+      .toLowerCase();
     const fileName = `elf-plan-${filenameSafeName || 'magic'}.pdf`;
 
-    return new NextResponse(pdfBytes, {
+    // Convert Uint8Array -> ArrayBuffer (BodyInit accepts ArrayBuffer)
+    const arrayBuffer = pdfBytes.buffer.slice(
+      pdfBytes.byteOffset,
+      pdfBytes.byteOffset + pdfBytes.byteLength,
+    ) as ArrayBuffer;
+
+    return new NextResponse(arrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -95,7 +104,7 @@ async function createElfPlanPdf({
     y,
     size: smallFontSize,
     font,
-    color: rgb(0.42, 0.45, 0.50), // slate-ish
+    color: rgb(0.42, 0.45, 0.5), // slate-ish
   });
 
   y -= smallFontSize * 1.8;
@@ -126,7 +135,7 @@ async function createElfPlanPdf({
     y,
     size: smallFontSize,
     font,
-    color: rgb(0.02, 0.59, 0.40),
+    color: rgb(0.02, 0.59, 0.4),
   });
 
   y -= smallFontSize * 2;
@@ -197,7 +206,7 @@ function drawParagraph({
   bottomY,
 }: {
   pdfDoc: PDFDocument;
-  page: any;
+  page: PDFPage;
   font: any;
   text: string;
   x: number;
@@ -206,26 +215,28 @@ function drawParagraph({
   lineHeight: number;
   maxWidth: number;
   bottomY: number;
-}): { page: any; y: number } {
+}): { page: PDFPage; y: number } {
   const words = text.split(/\s+/);
   let line = '';
 
   const drawLine = (lineText: string) => {
     if (!lineText.trim()) return;
+
     if (y < bottomY + lineHeight) {
-      // new page
+      // New page
       page = pdfDoc.addPage();
-      const { width, height } = page.getSize();
+      const { height } = page.getSize();
       y = height - bottomY;
     }
+
     page.drawText(lineText, {
       x,
       y,
       size: fontSize,
       font,
       color: rgb(0.07, 0.09, 0.15),
-      maxWidth,
     });
+
     y -= lineHeight;
   };
 
