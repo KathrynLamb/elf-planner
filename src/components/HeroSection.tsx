@@ -21,7 +21,7 @@ export default function HeroSection() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
+  
     if (!childName.trim()) {
       setError("Please add your child's name.");
       return;
@@ -30,63 +30,42 @@ export default function HeroSection() {
       setError('Please choose the date your Elf arrives.');
       return;
     }
-
+  
     try {
       setIsLoading(true);
-
-      // 1) Make a local "session" for the plan
+  
       const sessionId =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-      console.log("Session id", sessionId)
-
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(
-          'elf-current-session',
-          JSON.stringify({
-            sessionId,
-            childName,
-            ageRange,
-            startDate,
-            vibe,
-          }),
-        );
-      }
-
-      // 2) Ask our backend to create a PayPal order
+  
       const res = await fetch('/api/paypal-elf/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          // amount: 9,
-          ammount: 0.1,
+          amount: 9,
           currency: 'GBP',
+          // NEW: send elf details so backend can store them in Redis
+          childName,
+          ageRange,
+          startDate,
+          vibe,
         }),
       });
-
-
-      console.log("res", res)
-
+  
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.message || 'Error talking to PayPal.');
       }
-
+  
       const data = (await res.json()) as { approveUrl?: string; orderID?: string };
+  
       if (!data.approveUrl) {
         throw new Error('No PayPal approval URL returned.');
       }
-
-      console.log("dataa", data)
-
-      // 3) Open PayPal in a new tab
-      window.open(data.approveUrl, '_blank', 'noopener,noreferrer');
-
-      // 4) Move this tab to the success page (it will be hit again via PayPal redirect)
-      router.push(`/success?session_id=${encodeURIComponent(sessionId)}`);
+  
+      window.location.href = data.approveUrl;
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Something went wrong starting checkout.');
@@ -94,6 +73,7 @@ export default function HeroSection() {
       setIsLoading(false);
     }
   }
+  
 
   return (
     <section

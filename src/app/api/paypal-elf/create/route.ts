@@ -2,6 +2,7 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
+import { redis } from '@/lib/redis';
 
 const ENV =
   (process.env.PAYPAL_ENV ?? 'sandbox').toLowerCase() === 'live'
@@ -13,28 +14,26 @@ const BASE =
     ? 'https://api-m.paypal.com'
     : 'https://api-m.sandbox.paypal.com';
 
-    console.log("BASE", BASE)
+console.log('BASE', BASE);
 
 const APPROVE_BASE =
   ENV === 'live'
     ? 'https://www.paypal.com/checkoutnow?token='
     : 'https://www.sandbox.paypal.com/checkoutnow?token=';
 
-    console.log("APPROVE_BASE", APPROVE_BASE)
+console.log('APPROVE_BASE', APPROVE_BASE);
 
 const CLIENT_ID =
   process.env.PAYPAL_CLIENT_ID ||
   process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
   '';
 
-  console.log('CLIENT_ID', CLIENT_ID)
+console.log('CLIENT_ID', CLIENT_ID);
 
 const CLIENT_SECRET =
-  process.env.PAYPAL_CLIENT_SECRET ||
-  process.env.PAYPAL_SECRET ||
-  '';
+  process.env.PAYPAL_CLIENT_SECRET || process.env.PAYPAL_SECRET || '';
 
-  console.log('CLIENT_SECRET', CLIENT_SECRET)
+console.log('CLIENT_SECRET', CLIENT_SECRET);
 
 async function getAccessToken(): Promise<string> {
   if (!CLIENT_ID || !CLIENT_SECRET) {
@@ -42,7 +41,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   const auth = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
-  console.log("auth", auth)
+  console.log('auth', auth);
 
   const r = await fetch(`${BASE}/v1/oauth2/token`, {
     method: 'POST',
@@ -54,7 +53,7 @@ async function getAccessToken(): Promise<string> {
     cache: 'no-store',
   });
 
-  console.log("r", r)
+  console.log('r', r);
 
   if (!r.ok) {
     const t = await r.text().catch(() => '');
@@ -65,10 +64,16 @@ async function getAccessToken(): Promise<string> {
   return j.access_token as string;
 }
 
+type ElfVibe = 'silly' | 'kind' | 'calm';
+
 type CreateBody = {
   sessionId: string;
   amount: number; // e.g. 9
   currency: 'GBP' | 'USD' | 'EUR';
+  childName: string;
+  ageRange: string;
+  startDate: string;
+  vibe: ElfVibe;
 };
 
 export async function POST(req: Request) {
@@ -82,16 +87,32 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as CreateBody;
 
-    const sessionId = body.sessionId;
-    console.log('sessionId', sessionId)
-    const amount = Number(body.amount);
-    console.log('amount', amount)
-    const currency = (body.currency || '').toUpperCase() as CreateBody['currency'];
-    console.log('currency', currency)
+    const {
+      sessionId,
+      amount: rawAmount,
+      currency: rawCurrency,
+      childName,
+      ageRange,
+      startDate,
+      vibe,
+    } = body;
+
+    console.log('sessionId', sessionId);
+    const amount = Number(rawAmount);
+    console.log('amount', amount);
+    const currency = (rawCurrency || '').toUpperCase() as CreateBody['currency'];
+    console.log('currency', currency);
 
     if (!sessionId) {
       return NextResponse.json(
         { message: 'Missing sessionId' },
+        { status: 400 },
+      );
+    }
+
+    if (!childName || !startDate || !ageRange || !vibe) {
+      return NextResponse.json(
+        { message: 'Missing required elf details' },
         { status: 400 },
       );
     }
@@ -105,9 +126,27 @@ export async function POST(req: Request) {
 
     const value = amount.toFixed(2);
 
+    // 1) Store elf session details in Redis with a TTL (e.g. 7 days)
+    await redis.set(
+      `elf-session:${sessionId}`,
+      {
+        sessionId,
+        childName,
+        ageRange,
+        startDate,
+        vibe,
+        amount,
+        currency,
+        createdAt: Date.now(),
+      },
+      {
+        ex: 60 * 60 * 24 * 7, // 7 days
+      },
+    );
+
     const token = await getAccessToken();
 
-    // Where PayPal sends people back to after they approve / cancel
+    // Where PayPal sends people back after approve / cancel
     const returnUrl = `${baseUrl}/success?status=approved&provider=paypal&session_id=${encodeURIComponent(
       sessionId,
     )}`;
