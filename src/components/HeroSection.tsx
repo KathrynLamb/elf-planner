@@ -228,8 +228,6 @@ export default function HeroSection() {
         </div>
       </div>
 
-
-
       {/* Right visual column */}
       <div className="hidden w-full md:block md:w-2/5">
         <div className="relative mx-auto max-w-sm">
