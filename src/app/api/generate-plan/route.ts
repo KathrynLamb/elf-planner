@@ -1,6 +1,12 @@
+
+
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import OpenAI from 'openai';
+import { redis } from '@/lib/redis';
+
+export const runtime = 'nodejs';
+
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -92,11 +98,25 @@ Elf note: ...
       temperature: 0.9,
     });
 
-    const plan =
-      completion.choices[0]?.message?.content?.toString().trim() ||
-      'Sorry, I could not generate a plan.';
+ // ... after you've created `plan` from OpenAI:
 
-    return NextResponse.json({ plan });
+const plan =
+completion.choices[0]?.message?.content?.toString().trim() ||
+'Sorry, I could not generate a plan.';
+
+// Save the plan + metadata so PDF/SMS can use it later
+await redis.set(`elf:plan:${sessionId}`, {
+    plan,
+    childName,
+    ageRange,
+    startDate,
+    vibe,
+  });
+  
+  return NextResponse.json({ plan });
+
+
+
   } catch (error: any) {
     console.error('Error generating Elf plan:', error);
     return NextResponse.json(
