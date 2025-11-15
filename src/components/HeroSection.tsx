@@ -18,7 +18,7 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -34,13 +34,12 @@ export default function HeroSection() {
     try {
       setIsLoading(true);
 
-      // 1) Create our own session id for this plan
+      // 1) Make a local "session" for the plan
       const sessionId =
         typeof crypto !== 'undefined' && 'randomUUID' in crypto
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-      // 2) Stash details in localStorage (handy if the user comes back later)
       if (typeof window !== 'undefined') {
         window.localStorage.setItem(
           'elf-current-session',
@@ -54,7 +53,7 @@ export default function HeroSection() {
         );
       }
 
-      // 3) Ask our API to create a PayPal order for this session
+      // 2) Ask our backend to create a PayPal order
       const res = await fetch('/api/paypal-elf/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,10 +61,6 @@ export default function HeroSection() {
           sessionId,
           amount: 9,
           currency: 'GBP',
-          childName,
-          ageRange,
-          startDate,
-          vibe,
         }),
       });
 
@@ -74,19 +69,20 @@ export default function HeroSection() {
         throw new Error(data?.message || 'Error talking to PayPal.');
       }
 
-      const data = (await res.json()) as { approveUrl?: string };
-
+      const data = (await res.json()) as { approveUrl?: string; orderID?: string };
       if (!data.approveUrl) {
         throw new Error('No PayPal approval URL returned.');
       }
 
-      // 4) Send the user to PayPal checkout
-      window.location.href = data.approveUrl;
-      // After payment, PayPal will redirect back to:
-      // /success?status=approved&provider=paypal&session_id=<sessionId>&token=<orderID>
+      // 3) Open PayPal in a new tab
+      window.open(data.approveUrl, '_blank', 'noopener,noreferrer');
+
+      // 4) Move this tab to the success page (it will be hit again via PayPal redirect)
+      router.push(`/success?session_id=${encodeURIComponent(sessionId)}`);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Something went wrong starting PayPal checkout.');
+      setError(err.message || 'Something went wrong starting checkout.');
+    } finally {
       setIsLoading(false);
     }
   }
@@ -114,11 +110,9 @@ export default function HeroSection() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Child name */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="childName"
-                className="text-xs font-medium text-slate-200"
-              >
+              <label htmlFor="childName" className="text-xs font-medium text-slate-200">
                 Child&apos;s name
               </label>
               <input
@@ -132,11 +126,9 @@ export default function HeroSection() {
               />
             </div>
 
+            {/* Age range */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="ageRange"
-                className="text-xs font-medium text-slate-200"
-              >
+              <label htmlFor="ageRange" className="text-xs font-medium text-slate-200">
                 Age range
               </label>
               <select
@@ -151,11 +143,9 @@ export default function HeroSection() {
               </select>
             </div>
 
+            {/* Start date */}
             <div className="space-y-1.5">
-              <label
-                htmlFor="startDate"
-                className="text-xs font-medium text-slate-200"
-              >
+              <label htmlFor="startDate" className="text-xs font-medium text-slate-200">
                 Start date for your Elf
               </label>
               <input
@@ -167,10 +157,9 @@ export default function HeroSection() {
               />
             </div>
 
+            {/* Vibe */}
             <div className="space-y-1.5">
-              <span className="text-xs font-medium text-slate-200">
-                Elf vibe
-              </span>
+              <span className="text-xs font-medium text-slate-200">Elf vibe</span>
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
@@ -238,6 +227,8 @@ export default function HeroSection() {
           </span>
         </div>
       </div>
+
+
 
       {/* Right visual column */}
       <div className="hidden w-full md:block md:w-2/5">
