@@ -10,7 +10,12 @@ type ElfVibe = 'silly' | 'kind' | 'calm';
 // TODO: Replace this with your real PayPal.Me or PayPal checkout URL.
 // Example for PayPal.Me: https://paypal.me/yourhandle/9
 
-const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/JS3GXYC5B3HUN';
+// const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/JS3GXYC5B3HUN';
+
+
+// Test – 30-day Elf Plan
+const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/5CUL54NE323XU';
+
 
 
 export default function HeroSection() {
