@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const body = await req.json();
 
   const {
-    sessionId,              // <-- you were using this but not defining it
+    sessionId,
     childName,
     ageYears,
     ageRange,
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const response = await client.responses.create({
     model: 'gpt-5.1-mini',
 
-    // ✅ Structured outputs for Responses API live under `text.format`, not `response_format`
+    // Structured outputs: use `text.format` with a JSON schema
     text: {
       format: {
         type: 'json_schema',
@@ -111,9 +111,12 @@ export async function POST(req: Request) {
                       'Optional: Running joke or reference back to an earlier night or the child’s interests.',
                   },
                 },
+                // ✅ THIS is what the error was asking for:
+                additionalProperties: false,
               },
             },
           },
+          // top-level object should also forbid extras
           additionalProperties: false,
         },
       },
@@ -186,14 +189,13 @@ Output JSON only. No markdown, no commentary.
     ],
   });
 
-  // ✅ For Responses + text.format, the JSON comes back as a string in `.text`
+  // JSON will come back as a string in `.text`
   const rawText = (response as any).output?.[0]?.content?.[0]?.text as string;
   let planJson: unknown = null;
 
   try {
     planJson = JSON.parse(rawText);
   } catch {
-    // fallback: return the raw text if somehow parsing fails
     planJson = rawText;
   }
 
