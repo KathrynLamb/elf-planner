@@ -69,6 +69,7 @@ export async function POST(req: Request) {
                   'propsNeeded',
                   'parentTips',
                   'backupIdea',
+                  'callbacks', 
                 ],
                 properties: {
                   day: { type: 'integer' },
