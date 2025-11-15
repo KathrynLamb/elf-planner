@@ -3,14 +3,15 @@
 
 import { FormEvent, useState } from 'react';
 
-const AGE_RANGES = [
-  '3–4 years',
-  '4–6 years',
-  '6–8 years',
-  '8+ years',
-];
+const AGE_RANGES = ['3–4 years', '4–6 years', '6–8 years', '8+ years'];
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
+
+// TODO: Replace this with your real PayPal.Me or PayPal checkout URL.
+// Example for PayPal.Me: https://paypal.me/yourhandle/9
+
+const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/JS3GXYC5B3HUN';
+
 
 export default function HeroSection() {
   const [childName, setChildName] = useState('');
@@ -20,7 +21,7 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -33,33 +34,20 @@ export default function HeroSection() {
       return;
     }
 
+    if (!PAYPAL_CHECKOUT_URL || PAYPAL_CHECKOUT_URL.includes('YOUR_HANDLE_HERE')) {
+      setError('Payment link is not configured yet.');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const res = await fetch('/api/checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          childName,
-          ageRange,
-          startDate,
-          vibe,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || 'Something went wrong starting checkout.');
-      }
-
-      const data = (await res.json()) as { url?: string };
-      if (!data.url) {
-        throw new Error('No checkout URL returned.');
-      }
-
-      window.location.href = data.url;
+      // Open PayPal checkout in a new tab/window.
+      // Keeping this direct in the submit handler so browsers don't block it.
+      window.open(PAYPAL_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError('Something went wrong opening PayPal. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   }
@@ -145,11 +133,13 @@ export default function HeroSection() {
                 Elf vibe
               </span>
               <div className="grid grid-cols-3 gap-2">
-                {([
-                  { id: 'silly', label: 'Silly' },
-                  { id: 'kind', label: 'Kind' },
-                  { id: 'calm', label: 'Calm' },
-                ] as { id: ElfVibe; label: string }[]).map((option) => {
+                {(
+                  [
+                    { id: 'silly', label: 'Silly' },
+                    { id: 'kind', label: 'Kind' },
+                    { id: 'calm', label: 'Calm' },
+                  ] as { id: ElfVibe; label: string }[]
+                ).map((option) => {
                   const active = vibe === option.id;
                   return (
                     <button
@@ -180,12 +170,12 @@ export default function HeroSection() {
               disabled={isLoading}
               className="mt-2 flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-80"
             >
-              {isLoading ? 'Starting secure checkout…' : 'Get my Elf plan (£9)'}
+              {isLoading ? 'Opening PayPal…' : 'Get my Elf plan (£9)'}
             </button>
 
             <p className="text-[11px] text-slate-400">
-              You&apos;ll be taken to a secure Stripe checkout. After payment you&apos;ll
-              get your personalised 30-day Elf-on-the-Shelf plan instantly.
+              You&apos;ll be taken to a secure PayPal checkout. Once payment&apos;s done,
+              you&apos;ll get your personalised 30-day Elf-on-the-Shelf plan.
             </p>
             <p className="text-[11px] text-slate-400">
               Perfect for busy, knackered parents who still want the magic ✨
