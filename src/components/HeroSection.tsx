@@ -2,23 +2,19 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const AGE_RANGES = ['3–4 years', '4–6 years', '6–8 years', '8+ years'];
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
 
-// TODO: Replace this with your real PayPal.Me or PayPal checkout URL.
-// Example for PayPal.Me: https://paypal.me/yourhandle/9
-
-// const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/JS3GXYC5B3HUN';
-
-
-// Test – 30-day Elf Plan
-const PAYPAL_CHECKOUT_URL = 'https://www.paypal.com/ncp/payment/5CUL54NE323XU';
-
-
+// Use your real PayPal payment link here (the one you tested with £9 / £0.01)
+const PAYPAL_CHECKOUT_URL =
+  'https://www.paypal.com/ncp/payment/XXXXXXXXXXXXXXX'; // <-- replace
 
 export default function HeroSection() {
+  const router = useRouter();
+
   const [childName, setChildName] = useState('');
   const [ageRange, setAgeRange] = useState(AGE_RANGES[1]);
   const [startDate, setStartDate] = useState('');
@@ -26,7 +22,7 @@ export default function HeroSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -39,19 +35,41 @@ export default function HeroSection() {
       return;
     }
 
-    if (!PAYPAL_CHECKOUT_URL || PAYPAL_CHECKOUT_URL.includes('YOUR_HANDLE_HERE')) {
+    if (!PAYPAL_CHECKOUT_URL) {
       setError('Payment link is not configured yet.');
       return;
     }
 
     try {
       setIsLoading(true);
-      // Open PayPal checkout in a new tab/window.
-      // Keeping this direct in the submit handler so browsers don't block it.
+
+      // 1) Create a client-side "session" for this plan
+      const sessionId =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          'elf-current-session',
+          JSON.stringify({
+            sessionId,
+            childName,
+            ageRange,
+            startDate,
+            vibe,
+          }),
+        );
+      }
+
+      // 2) Open PayPal checkout in a new tab / window
       window.open(PAYPAL_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
+
+      // 3) Move this tab to the success page, carrying the sessionId
+      router.push(`/success?session_id=${encodeURIComponent(sessionId)}`);
     } catch (err: any) {
       console.error(err);
-      setError('Something went wrong opening PayPal. Please try again.');
+      setError('Something went wrong starting checkout. Please try again.');
     } finally {
       setIsLoading(false);
     }
