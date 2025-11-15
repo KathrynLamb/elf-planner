@@ -61,7 +61,8 @@ export default function HeroSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          amount: 9,
+          // amount: 9,
+          ammount: 0.1,
           currency: 'GBP',
         }),
       });
