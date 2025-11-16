@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
 import { Resend } from 'resend';
+import { patchElfSession } from '@/lib/elfStore';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const fromEmail = process.env.REMINDER_FROM_EMAIL!;
@@ -43,6 +44,7 @@ export async function GET() {
         currentDay: currentDay + 1,
         lastSentAt: new Date().toISOString(),
       });
+
 
       sent++;
     }

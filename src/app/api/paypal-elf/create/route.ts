@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
+import { patchElfSession } from '@/lib/elfStore';
 
 const ENV =
   (process.env.PAYPAL_ENV ?? 'sandbox').toLowerCase() === 'live'
@@ -127,22 +128,30 @@ export async function POST(req: Request) {
     const value = amount.toFixed(2);
 
     // 1) Store elf session details in Redis with a TTL (e.g. 7 days)
-    await redis.set(
-      `elf-session:${sessionId}`,
-      {
-        sessionId,
-        childName,
-        ageRange,
-        startDate,
-        vibe,
-        amount,
-        currency,
-        createdAt: Date.now(),
-      },
-      {
-        ex: 60 * 60 * 24 * 7, // 7 days
-      },
-    );
+    // await redis.set(
+    //   `elf-session:${sessionId}`,
+    //   {
+    //     sessionId,
+    //     childName,
+    //     ageRange,
+    //     startDate,
+    //     vibe,
+    //     amount,
+    //     currency,
+    //     createdAt: Date.now(),
+    //   },
+    //   {
+    //     ex: 60 * 60 * 24 * 7, // 7 days
+    //   },
+    // );
+
+    await patchElfSession(sessionId, {
+      childName,
+      ageRange,
+      startDate,
+      vibe,
+    });
+  
 
     const token = await getAccessToken();
 

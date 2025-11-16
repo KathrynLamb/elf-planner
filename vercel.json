@@ -1,0 +1,9 @@
+{
+    "crons": [
+      {
+        "path": "/api/cron/send-daily-elf-emails",
+        "schedule": "0 7 * * *"
+      }
+    ]
+  }
+  

@@ -2,257 +2,325 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-const AGE_RANGES = ['3–4 years', '4–6 years', '6–8 years', '8+ years'];
-
-type ElfVibe = 'silly' | 'kind' | 'calm';
+type Vibe = 'cheeky' | 'calm' | 'kind' | 'mixed';
 
 export default function HeroSection() {
   const router = useRouter();
 
-  const [childName, setChildName] = useState('');
-  const [ageRange, setAgeRange] = useState(AGE_RANGES[1]);
-  const [startDate, setStartDate] = useState('');
-  const [vibe, setVibe] = useState<ElfVibe>('silly');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // auth state
+  const [email, setEmail] = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  async function handleSubmit(e: FormEvent) {
+  // teaser state
+  const [childName, setChildName] = useState('');
+  const [ageRange, setAgeRange] = useState('');
+  const [vibe, setVibe] = useState<Vibe>('cheeky');
+  const [biggestWorry, setBiggestWorry] = useState('');
+  const [teaser, setTeaser] = useState<string | null>(null);
+  const [teaserLoading, setTeaserLoading] = useState(false);
+  const [teaserError, setTeaserError] = useState<string | null>(null);
+
+  async function handleEmailSignIn(e: FormEvent) {
     e.preventDefault();
-    setError(null);
-  
-    if (!childName.trim()) {
-      setError("Please add your child's name.");
+    setAuthError(null);
+    setAuthMessage(null);
+
+    if (!email) {
+      setAuthError('Pop your email in first.');
       return;
     }
-    if (!startDate.trim()) {
-      setError('Please choose the date your Elf arrives.');
-      return;
-    }
-  
+
+    setAuthSubmitting(true);
     try {
-      setIsLoading(true);
-  
-      const sessionId =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  
-      const res = await fetch('/api/paypal-elf/create', {
+      await signIn('email', {
+        email,
+        redirect: false,
+        callbackUrl: '/intro', // after magic link, start your intro flow
+      });
+
+      setAuthMessage(
+        'Magic link sent. Check your email on this device to finish signing in.'
+      );
+    } catch (err: any) {
+      console.error(err);
+      setAuthError(
+        'Something went wrong sending your magic link. Please try again in a moment.'
+      );
+    } finally {
+      setAuthSubmitting(false);
+    }
+  }
+
+  function handleGuest() {
+    router.push('/intro');
+  }
+
+  async function handlePreview(e: FormEvent) {
+    e.preventDefault();
+    setTeaserError(null);
+    setTeaser(null);
+
+    setTeaserLoading(true);
+    try {
+      const res = await fetch('/api/plan-teaser', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sessionId,
-          amount: 9,
-          currency: 'GBP',
-          // NEW: send elf details so backend can store them in Redis
-          childName,
-          ageRange,
-          startDate,
+          childName: childName || undefined,
+          ageRange: ageRange || undefined,
           vibe,
+          biggestWorry: biggestWorry || undefined,
         }),
       });
-  
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || 'Error talking to PayPal.');
+        throw new Error('Could not get a preview from Merry.');
       }
-  
-      const data = (await res.json()) as { approveUrl?: string; orderID?: string };
-  
-      if (!data.approveUrl) {
-        throw new Error('No PayPal approval URL returned.');
-      }
-  
-      window.location.href = data.approveUrl;
+
+      const data = (await res.json()) as { teaser: string };
+      setTeaser(data.teaser);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Something went wrong starting checkout.');
+      setTeaserError(
+        err.message || 'Something went wrong getting your preview. Please try again.'
+      );
     } finally {
-      setIsLoading(false);
+      setTeaserLoading(false);
     }
   }
-  
 
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="flex flex-col items-center gap-10 md:flex-row md:items-start"
-    >
-      {/* Left: main card */}
-      <div className="w-full md:w-3/5">
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/80 p-6 shadow-xl shadow-black/40 backdrop-blur md:p-8">
-          <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-emerald-300">
-            Elf on the Shelf Helper
+    <section aria-labelledby="hero-heading">
+      <div className="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 shadow-2xl px-6 py-7 md:px-10 md:py-9">
+        {/* Hero copy */}
+        <header className="max-w-2xl space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.35em] text-emerald-300">
+            Elf Planner
           </p>
           <h1
-            id="hero-title"
-            className="mb-3 text-center text-2xl font-semibold leading-tight text-slate-50 md:text-3xl"
+            id="hero-heading"
+            className="text-3xl md:text-4xl font-semibold leading-tight"
           >
-            Never scramble for Elf-on-the-Shelf ideas again
+            30 nights of Elf-on-the-Shelf ideas, planned for tired grown-ups 🎄
           </h1>
-          <p className="mb-6 text-center text-sm text-slate-300 md:text-[15px]">
-            Get a personalised 30-day Elf plan in minutes – simple nightly setups and
-            little notes from your Elf, tailored to your child.
+          <p className="text-sm md:text-base text-slate-200">
+            Merry the Elf will chat with you like a cosy hotline, then conjure a
+            personalised 30-day Elf plan: easy nightly setups, tiny notes from
+            your elf, and almost no weekday mess. You just set things out at
+            night.
           </p>
+        </header>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Child name */}
-            <div className="space-y-1.5">
-              <label htmlFor="childName" className="text-xs font-medium text-slate-200">
-                Child&apos;s name
-              </label>
-              <input
-                id="childName"
-                type="text"
-                autoComplete="off"
-                placeholder="e.g. Lily"
-                value={childName}
-                onChange={(e) => setChildName(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none ring-emerald-400/40 transition focus:border-emerald-400 focus:ring-2"
-              />
-            </div>
+        {/* Main grid: teaser + auth */}
+        <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] items-start">
+          {/* Teaser card */}
+          <div className="rounded-2xl bg-slate-950/80 border border-slate-800 px-4 py-4 md:px-5 md:py-5 space-y-4">
+            <h2 className="text-sm font-semibold">
+              Get a sneak peek at your Elf plan
+            </h2>
+            <p className="text-xs text-slate-300">
+              Tell Merry a tiny bit about your kid and your energy levels, and
+              she&apos;ll sketch a quick preview of what your December Elf plan
+              will feel like.
+            </p>
 
-            {/* Age range */}
-            <div className="space-y-1.5">
-              <label htmlFor="ageRange" className="text-xs font-medium text-slate-200">
-                Age range
-              </label>
-              <select
-                id="ageRange"
-                value={ageRange}
-                onChange={(e) => setAgeRange(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none ring-emerald-400/40 transition focus:border-emerald-400 focus:ring-2"
-              >
-                {AGE_RANGES.map((a) => (
-                  <option key={a}>{a}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Start date */}
-            <div className="space-y-1.5">
-              <label htmlFor="startDate" className="text-xs font-medium text-slate-200">
-                Start date for your Elf
-              </label>
-              <input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none ring-emerald-400/40 transition focus:border-emerald-400 focus:ring-2"
-              />
-            </div>
-
-            {/* Vibe */}
-            <div className="space-y-1.5">
-              <span className="text-xs font-medium text-slate-200">Elf vibe</span>
-              <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { id: 'silly', label: 'Silly' },
-                    { id: 'kind', label: 'Kind' },
-                    { id: 'calm', label: 'Calm' },
-                  ] as { id: ElfVibe; label: string }[]
-                ).map((option) => {
-                  const active = vibe === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setVibe(option.id)}
-                      className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
-                        active
-                          ? 'border-emerald-400 bg-emerald-500 text-slate-950 shadow shadow-emerald-500/30'
-                          : 'border-slate-700 bg-slate-900/70 text-slate-200 hover:border-emerald-400/70 hover:text-emerald-100'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+            <form onSubmit={handlePreview} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label
+                    htmlFor="child-name"
+                    className="block text-[11px] font-medium text-slate-300 uppercase tracking-[0.15em]"
+                  >
+                    Child&apos;s name
+                  </label>
+                  <input
+                    id="child-name"
+                    type="text"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    placeholder="eg. Sophia"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label
+                    htmlFor="age-range"
+                    className="block text-[11px] font-medium text-slate-300 uppercase tracking-[0.15em]"
+                  >
+                    Age
+                  </label>
+                  <input
+                    id="age-range"
+                    type="text"
+                    value={ageRange}
+                    onChange={(e) => setAgeRange(e.target.value)}
+                    placeholder="eg. 5, or 4–6"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                </div>
               </div>
-            </div>
 
-            {error && (
-              <p className="text-xs text-red-400" role="alert">
-                {error}
-              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="block text-[11px] font-medium text-slate-300 uppercase tracking-[0.15em]">
+                    Elf vibe
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {(['cheeky', 'calm', 'kind', 'mixed'] as Vibe[]).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setVibe(v)}
+                        className={[
+                          'rounded-full border px-3 py-1 text-[11px]',
+                          v === vibe
+                            ? 'border-emerald-400 bg-emerald-500/10 text-emerald-200'
+                            : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-emerald-400',
+                        ].join(' ')}
+                      >
+                        {v === 'cheeky'
+                          ? 'Cheeky'
+                          : v === 'calm'
+                          ? 'Calm'
+                          : v === 'kind'
+                          ? 'Kind'
+                          : 'A mix'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label
+                    htmlFor="biggest-worry"
+                    className="block text-[11px] font-medium text-slate-300 uppercase tracking-[0.15em]"
+                  >
+                    Biggest worry
+                  </label>
+                  <input
+                    id="biggest-worry"
+                    type="text"
+                    value={biggestWorry}
+                    onChange={(e) => setBiggestWorry(e.target.value)}
+                    placeholder="eg. remembering every night, too much mess…"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={teaserLoading}
+                className="w-full rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {teaserLoading
+                  ? 'Merry is dreaming up your December…'
+                  : 'Preview my Elf December'}
+              </button>
+            </form>
+
+            {teaserError && (
+              <p className="text-[11px] text-red-400">{teaserError}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="mt-2 flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-80"
-            >
-              {isLoading ? 'Opening PayPal…' : 'Get my Elf plan (£9)'}
-            </button>
+            {teaser && (
+              <div className="mt-3 space-y-2 rounded-xl border border-emerald-500/60 bg-slate-950/80 p-3">
+                <p className="text-[11px] font-semibold text-emerald-300">
+                  Merry&apos;s sneak peek
+                </p>
+                <p className="text-sm text-slate-100 whitespace-pre-wrap">
+                  {teaser}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Like the sound of that? Scroll down to see exactly what you
+                  get, then unlock the full 30-night plan.
+                </p>
+              </div>
+            )}
+          </div>
 
-            <p className="text-[11px] text-slate-400">
-              You&apos;ll be taken to a secure PayPal checkout. Once payment&apos;s done,
-              you&apos;ll get your personalised 30-day Elf-on-the-Shelf plan.
+          {/* Auth / CTA card */}
+          <div className="rounded-2xl bg-slate-950/70 border border-slate-800 px-4 py-4 md:px-5 md:py-5 space-y-4">
+            <h2 className="text-sm font-semibold">
+              Ready for the full 30-night Elf planner?
+            </h2>
+            <p className="text-xs text-slate-300">
+              Sign in with a magic link to save your plan for next year, or
+              continue without an account if you&apos;d just like this
+              December&apos;s Elf-on-the-Shelf ideas.
             </p>
-            <p className="text-[11px] text-slate-400">
-              Perfect for busy, knackered parents who still want the magic ✨
-            </p>
-          </form>
+
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <div className="space-y-1">
+                <label
+                  htmlFor="hero-email"
+                  className="block text-[11px] font-medium text-slate-300 uppercase tracking-[0.15em]"
+                >
+                  Email
+                </label>
+                <input
+                  id="hero-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={authSubmitting}
+                className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {authSubmitting
+                  ? 'Sending magic sign-in link…'
+                  : 'Send me a magic sign-in link'}
+              </button>
+            </form>
+
+            {authMessage && (
+              <p className="text-[11px] text-emerald-300">{authMessage}</p>
+            )}
+            {authError && (
+              <p className="text-[11px] text-red-400">{authError}</p>
+            )}
+
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={handleGuest}
+                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2.5 text-sm font-semibold text-slate-50 hover:border-emerald-400 hover:bg-slate-900/80"
+              >
+                Continue without an account
+              </button>
+              <ul className="text-[11px] text-slate-400 space-y-1">
+                <li>• Takes about 2–3 minutes to get your plan.</li>
+                <li>• Designed for one-handed, tired-at-11pm parents.</li>
+                <li>• Mostly low-mess Elf ideas, with optional “big” nights.</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         {/* Trust strip */}
-        <div className="mt-4 flex flex-wrap justify-center gap-3 text-[11px] text-slate-300">
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            One-off payment, no subscription
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            Instant plan + PDF download
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            14-day “not for us” refund promise
-          </span>
-        </div>
-      </div>
-
-      {/* Right visual column */}
-      <div className="hidden w-full md:block md:w-2/5">
-        <div className="relative mx-auto max-w-sm">
-          <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-emerald-500/30 via-sky-500/10 to-fuchsia-500/30 opacity-60 blur-2xl" />
-          <div className="relative space-y-4 rounded-3xl border border-slate-800 bg-slate-950/90 p-4 shadow-xl shadow-black/50">
-            <p className="text-xs font-semibold text-emerald-300">
-              Your Elf plan preview
-            </p>
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 text-[11px] leading-relaxed text-slate-100">
-              <p className="font-semibold text-slate-50">Day 1: Hello, [Name]!</p>
-              <p className="mt-1">
-                <span className="font-semibold">Setup:</span> Sit your Elf on a shelf
-                or table with a little paper sign that says “Hi [Name]!”.
-              </p>
-              <p className="mt-1 text-slate-300">
-                <span className="font-semibold">Elf note:</span> “Hi [Name]! I’m your
-                silly Elf, here to keep you giggling all month long.”
-              </p>
-              <p className="mt-3 font-semibold text-slate-50">Day 2: Book Buddy</p>
-              <p className="mt-1">
-                <span className="font-semibold">Setup:</span> Prop the Elf inside your
-                child’s favourite storybook, peeking out.
-              </p>
-              <p className="mt-1 text-slate-300">
-                <span className="font-semibold">Elf note:</span> “I picked your
-                favourite book! Want to read it together today?”
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-3 text-[11px] text-slate-200">
-              <p className="mb-1 font-semibold text-slate-50">You&apos;ll also get</p>
-              <ul className="space-y-1 list-disc pl-4">
-                <li>Printer-friendly PDF</li>
-                <li>Full plan emailed to you</li>
-                <li>Ideas you can tweak and reuse</li>
-              </ul>
-            </div>
+        <div className="mt-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between text-[11px] text-slate-400">
+          <div className="flex flex-wrap gap-3">
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden>🔒</span>
+              Secure checkout with PayPal.
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden>📱</span>
+              Works beautifully on your phone – PDF included if you want to print.
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden>✨</span>
+              Built for knackered parents who still want the magic.
+            </span>
           </div>
         </div>
       </div>

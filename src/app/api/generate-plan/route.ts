@@ -1,49 +1,87 @@
 // src/app/api/generate-plan/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+
+import { getElfSession, patchElfSession, ElfPlanObject } from '@/lib/elfStore';
+import { getCurrentSession } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-export async function POST(req: Request) {
+function addDays(dateStr: string, days: number): Date {
+  // Normalize to UTC to avoid TZ weirdness
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
+export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({} as any));
+    const { sessionId } = body as { sessionId?: string };
 
-    const {
-      sessionId,
-      childName,
-      ageYears,
-      ageRange,
-      startDate,
-      vibe, // 'silly' | 'kind' | 'calm'
-      siblings = [],
-      pets = [],
-      interests = [],
-      energyLevel = 'normal-tired',
-      messTolerance = 'low',
-      bannedProps = [],
-      availableProps = [],
-      notesForElf = '',
-    } = body;
-
-    if (!childName || !startDate || !vibe) {
+    if (!sessionId) {
       return NextResponse.json(
-        { message: 'Missing required Elf details.' },
+        { message: 'Missing sessionId.' },
         { status: 400 },
       );
     }
 
-    // 30-day plan by default
+    const storedSession = await getElfSession(sessionId);
+    if (!storedSession) {
+      return NextResponse.json(
+        { message: 'Elf session not found.' },
+        { status: 404 },
+      );
+    }
+
+    const profile = storedSession.inferredProfile;
+    if (!profile) {
+      return NextResponse.json(
+        {
+          message:
+            'Missing inferred Elf profile. Please chat to Merry first so she can learn about your kiddo.',
+        },
+        { status: 400 },
+      );
+    }
+
+    const authSession = await getCurrentSession();
+    const userEmail = authSession?.user?.email ?? storedSession.userEmail ?? null;
+
     const numDays = 30;
 
-    const response = await client.responses.create({
-      model: 'gpt-5-mini', // ✅ valid model
+    const childName = profile.childName || storedSession.childName || 'your child';
+    const ageYears = profile.ageYears ?? null;
+    const ageRange =
+      profile.ageRange || storedSession.ageRange || '4–6 years';
+    const vibe = profile.vibe || storedSession.vibe || 'silly';
 
+    const startDate =
+      storedSession.startDate ||
+      new Date().toISOString().slice(0, 10); // fallback: today
+
+    // Pre-compute calendar info for the 30 nights
+    const calendarMeta = Array.from({ length: numDays }, (_, i) => {
+      const dateObj = addDays(startDate, i);
+      const iso = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
+      const weekday = dateObj.toLocaleDateString('en-GB', {
+        weekday: 'long',
+      });
+      return {
+        dayNumber: i + 1,
+        date: iso,
+        weekday,
+      };
+    });
+
+    const response = await client.responses.create({
+      model: 'gpt-5-mini',
       text: {
         format: {
           type: 'json_schema',
-          name: 'elf_plan',
+          name: 'elf_30_day_plan',
           strict: true,
           schema: {
             type: 'object',
@@ -60,33 +98,32 @@ export async function POST(req: Request) {
                 maxItems: numDays,
                 items: {
                   type: 'object',
-                  required: [
-                    'day',
-                    'title',
-                    'setup',
-                    'elfNote',
-                    'effortLevel',
-                    'propsNeeded',
-                    'parentTips',
-                    'backupIdea',
-                    'callbacks', // must be listed too
-                  ],
+                  required: ['dayNumber', 'title', 'description', 'noteFromElf',  'imagePrompt'],
                   properties: {
-                    day: { type: 'integer' },
-                    title: { type: 'string' },
-                    setup: { type: 'string' },
-                    elfNote: { type: 'string' },
-                    effortLevel: {
+                    dayNumber: {
+                      type: 'integer',
+                      description:
+                        '1–30. Should match the provided calendar dayNumber.',
+                    },
+                    title: {
                       type: 'string',
-                      enum: ['very-low', 'low', 'medium'],
+                      description: 'Short, fun name for tonight’s setup.',
                     },
-                    propsNeeded: {
-                      type: 'array',
-                      items: { type: 'string' },
+                    description: {
+                      type: 'string',
+                      description:
+                        'Clear instructions for the parent on how to set up the scene, in 2–6 sentences. Assume they are tired and have only a few minutes.',
                     },
-                    parentTips: { type: 'string' },
-                    backupIdea: { type: 'string' },
-                    callbacks: { type: 'string' },
+                    noteFromElf: {
+                      type: 'string',
+                      description:
+                        'Optional short note the Elf “writes” to the child for this night. Can be empty if no note is needed.',
+                    },
+                    imagePrompt: {
+                      type: 'string',
+                      description:
+                        'A detailed visual prompt for gpt-image-1 that describes tonight’s Elf scene. No text-in-image instructions. Describe the Elf, the setting, props, lighting, and overall mood.',
+                    },
                   },
                   additionalProperties: false,
                 },
@@ -96,7 +133,6 @@ export async function POST(req: Request) {
           },
         },
       },
-
       input: [
         {
           role: 'system',
@@ -105,30 +141,29 @@ export async function POST(req: Request) {
               type: 'input_text',
               text: `
 You are "Merry", an expert Elf-on-the-Shelf mischief planner and children’s storyteller.
-Your job is to create a **30-day plan** that feels unbelievably personal, warm, and funny
-for ONE specific child and their family.
 
-Design choices:
-- Write for roughly ${ageYears ?? ageRange ?? '5-7'} years old.
+Your job is to create a **30-night plan** for one specific child and their family.
+
+Design constraints:
+- Write for roughly ${ageYears ?? ageRange ?? '5–7'} years old.
 - The Elf’s general vibe is "${vibe}" (silly / kind / calm). Match that tone.
 - Use the child’s interests and family details heavily so it feels like the Elf truly knows them.
-- Include occasional running jokes and gentle callbacks across days (but keep each day understandable on its own).
-- Assume the parent is often tired. Most nights should be **very-low to low effort**.
-- NEVER involve: open flames, dangerous objects, water on floors, blocking exits, choking hazards, or anything that encourages unsafe behaviour.
-- Avoid mean-spirited tricks, shaming, threats, or "Santa will be angry" vibes. The Elf is playful, kind, and on the child’s side.
+- Assume the parent is often tired. Most nights should be very-low to low effort.
+- NEVER involve: open flames, dangerous objects, water on floors, blocking exits, choking hazards, bullying, or anything that encourages unsafe behaviour.
+- Avoid mean tricks, shaming, or threats. The Elf is playful, kind, and on the child’s side.
 
-Practical constraints:
-- Respect the parent’s mess tolerance and banned props.
-- Prefer using things the family *likely has* and any explicit "availableProps".
-- Keep instructions crystal clear so a sleep-deprived parent at 11pm can follow them.
+Scene + image guidance:
+- For each day, "description" explains the setup in words to the parent.
+- "imagePrompt" is how we illustrate the scene with gpt-image-1:
+  - Describe the Elf, setting, props, and composition.
+  - Include cosy Christmas details if appropriate (fairy lights, blankets, snow outside).
+  - Do NOT ask for written text/letters visible in the image (the parent can add their own note on paper).
+  - Keep everything family-friendly and non-branded (no licensed characters or logos).
 
-Tone:
-- Warm, funny, cosy. Think "British parent who loves their kid, slightly chaotic December".
-- Light gentle humour about parents being tired is okay, but never at the child’s expense.
-- Keep the Elf’s notes short, readable, and heartwarming.
+You will be given a calendar of 30 nights (dayNumber, date, weekday). Your "dayNumber" field must line up with that; you do NOT need to recalculate dates.
 
-Output JSON only. No markdown, no commentary.
-`.trim(),
+Return JSON only. No markdown, no commentary.
+          `.trim(),
             },
           ],
         },
@@ -139,20 +174,13 @@ Output JSON only. No markdown, no commentary.
               type: 'input_text',
               text: JSON.stringify(
                 {
-                  sessionId,
                   childName,
                   ageYears,
                   ageRange,
-                  startDate,
                   vibe,
-                  siblings,
-                  pets,
-                  interests,
-                  energyLevel,
-                  messTolerance,
-                  bannedProps,
-                  availableProps,
-                  notesForElf,
+                  startDate,
+                  calendar: calendarMeta,
+                  inferredProfile: profile,
                   numDays,
                 },
                 null,
@@ -164,7 +192,6 @@ Output JSON only. No markdown, no commentary.
       ],
     });
 
-    // ✅ Easiest way: structured output comes back as a JSON string here
     const rawText = response.output_text;
     console.log('[generate-plan] rawText snippet:', rawText?.slice(0, 200));
 
@@ -172,15 +199,60 @@ Output JSON only. No markdown, no commentary.
       throw new Error('Model returned empty output_text');
     }
 
-    let planJson: unknown;
+    let parsed: any;
     try {
-      planJson = JSON.parse(rawText);
+      parsed = JSON.parse(rawText);
     } catch (err) {
-      console.error('[generate-plan] JSON.parse failed, returning raw text', err);
-      planJson = rawText; // worst case: let client see the raw text
+      console.error('[generate-plan] JSON.parse failed', err);
+      throw new Error('Model returned invalid JSON for Elf plan.');
     }
 
-    return NextResponse.json({ plan: planJson });
+    // Shape should match ElfPlanObject without date/weekday; now we enrich.
+    const basePlan = parsed as {
+      planOverview: string;
+      days: Array<{
+        dayNumber: number;
+        title: string;
+        description: string;
+        noteFromElf?: string;
+        imagePrompt: string;
+      }>;
+    };
+
+    const enrichedDays = calendarMeta.map((meta, idx) => {
+      const modelDay = basePlan.days[idx] ?? {};
+      return {
+        dayNumber: meta.dayNumber,
+        date: meta.date,
+        weekday: meta.weekday,
+        title: modelDay.title ?? `Night ${meta.dayNumber}`,
+        description: modelDay.description ?? '',
+        noteFromElf: modelDay.noteFromElf || undefined,
+        imagePrompt: modelDay.imagePrompt ?? '',
+      };
+    });
+
+    const finalPlan: ElfPlanObject = {
+      planOverview: basePlan.planOverview ?? '',
+      days: enrichedDays,
+    };
+
+    console.log("final plan", finalPlan)
+
+    // Persist to Redis
+    await patchElfSession(sessionId, {
+      childName,
+      ageRange,
+      ageYears,
+      startDate,
+      vibe,
+      userEmail,
+      plan: finalPlan,
+      planGeneratedAt: Date.now(),
+      // keep miniPreview as-is if already present
+    });
+
+    return NextResponse.json({ plan: finalPlan });
   } catch (error: any) {
     console.error('[generate-plan] error', error);
     return NextResponse.json(

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { redis } from '@/lib/redis';
+import { patchElfSession } from '@/lib/elfStore';
 
 export const runtime = 'nodejs';
 
@@ -222,11 +223,12 @@ ONLY output JSON per the schema.
     };
 
     // Save updated profile back to Redis
-    await redis.set(
-      `elf:hotline:${sessionId}`,
-      { profile: parsed.profile },
-      { ex: 60 * 60 * 24 * 7 },
-    );
+    await patchElfSession(sessionId, {
+      childName,
+      ageRange,
+      // startDate,
+      vibe,
+    });
 
     return NextResponse.json({
       reply: parsed.reply,

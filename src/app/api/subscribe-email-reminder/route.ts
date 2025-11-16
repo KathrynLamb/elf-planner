@@ -1,56 +1,35 @@
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { redis } from '@/lib/redis';
+// src/app/api/subscribe-email-reminder/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { patchElfSession, redis } from '@/lib/elfStore';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+const REMINDER_SET_KEY = 'elf:reminder:sessions';
+
+export async function POST(req: NextRequest) {
   try {
-    const { email, sessionId } = await req.json();
+    const { email, sessionId, timezone, hourLocal } = await req.json();
 
     if (!email || !sessionId) {
       return NextResponse.json(
-        { message: 'Missing email or session.' },
+        { message: 'Missing email or sessionId.' },
         { status: 400 },
       );
     }
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json(
-        { message: 'Payment not completed for this session.' },
-        { status: 400 },
-      );
-    }
-
-    const planData = await redis.get<{
-      plan: string;
-      startDate?: string;
-      childName?: string;
-    }>(`elf:plan:${sessionId}`);
-
-    if (!planData || !planData.plan) {
-      return NextResponse.json(
-        { message: 'Could not find your Elf plan. Please generate it again.' },
-        { status: 404 },
-      );
-    }
-
-    await redis.set(`elf:email:${sessionId}`, {
-      email,
-      currentDay: 1,
-      plan: planData.plan,
-      childName: planData.childName || 'your child',
-      startDate: planData.startDate || '',
-      createdAt: new Date().toISOString(),
+    await patchElfSession(sessionId, {
+      reminderEmail: email,
+      reminderTimezone: timezone ?? 'Europe/London',
+      reminderHourLocal: typeof hourLocal === 'number' ? hourLocal : 7, // 7am
     });
+
+    await redis.sadd(REMINDER_SET_KEY, sessionId);
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error(err);
+    console.error('[subscribe-email-reminder] error', err);
     return NextResponse.json(
-      { message: err.message || 'Error saving reminder.' },
+      { message: 'Error saving reminder.' },
       { status: 500 },
     );
   }
