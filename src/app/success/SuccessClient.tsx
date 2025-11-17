@@ -417,8 +417,9 @@ export default function SuccessClient() {
       }
 
       setReminderMsg(
-        "Got it – I’ll email you each morning with that day’s Elf idea.",
+        'Got it – I’ve emailed you your first Elf idea so you can see what to expect, and I’ll email you each morning as we begin.',
       );
+      
     } catch (err: any) {
       console.error(err);
       setReminderErr(err.message || 'Something went wrong. Please try again.');

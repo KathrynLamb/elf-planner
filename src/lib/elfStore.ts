@@ -197,6 +197,12 @@ export async function getElfSession(
     userEmail: data.userEmail ?? null,
     payerEmail: data.payerEmail ?? null,
 
+    reminderEmail: data.reminderEmail ?? null,
+    reminderTimezone: data.reminderTimezone ?? null,
+    reminderHourLocal: data.reminderHourLocal
+      ? Number(data.reminderHourLocal)
+      : null,
+
     createdAt: data.createdAt ? Number(data.createdAt) : now,
     updatedAt: data.updatedAt ? Number(data.updatedAt) : now,
   };
