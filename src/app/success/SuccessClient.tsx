@@ -26,6 +26,8 @@ type ElfPlanDay = {
   description?: string;
   noteFromElf?: string;
   date?: string;
+  weekday?: string;
+  imagePrompt?: string;
 };
 
 type ElfPlanObject = {
@@ -56,8 +58,11 @@ export default function SuccessClient() {
   const [hotlineSkipped, setHotlineSkipped] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [mediaRecorder, setMediaRecorder] =
+    useState<MediaRecorder | null>(null);
   const [recordStartTime, setRecordStartTime] = useState<number | null>(null);
+
+  const hasPlanObject = Boolean(plan && typeof plan !== 'string');
 
   // -------- Load session from Redis via API --------
   useEffect(() => {
@@ -85,6 +90,7 @@ export default function SuccessClient() {
           const fullSession = data.session as any;
           console.log('[Success page] full Elf session from API:', fullSession);
 
+          setPlan(fullSession.plan);
           setElfSession({
             sessionId: fullSession.sessionId,
             childName: fullSession.childName,
@@ -235,7 +241,71 @@ export default function SuccessClient() {
     }
   }
 
-  // -------- Plan display helper (for later UI) --------
+  // -------- Plan viewer (full-width when present) --------
+  function PlanViewer({ plan }: { plan: ElfPlanObject }) {
+    if (!plan || !plan.days) return null;
+
+    return (
+      <div className="mt-6 md:mt-8">
+        <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-4 sm:p-5 lg:p-6">
+          <div className="mb-4">
+            <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 flex items-center gap-2 text-slate-50">
+              <span>🎄 Your 30-Night Elf Plan</span>
+            </h2>
+
+            {plan.planOverview && (
+              <p className="text-xs sm:text-sm text-slate-300 whitespace-pre-line">
+                {plan.planOverview}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-2 space-y-3">
+            {plan.days.map((day, idx) => (
+              <article
+                key={day.dayNumber ?? day.date ?? idx}
+                className="rounded-2xl bg-slate-900/70 border border-slate-800 px-3 py-3 sm:px-4 sm:py-4"
+              >
+                <header className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                  <h3 className="text-sm sm:text-base font-semibold text-slate-50">
+                    Day {day.dayNumber ?? idx + 1} — {day.title}
+                  </h3>
+                  {day.date && day.weekday && (
+                    <span className="text-[10px] sm:text-xs text-slate-400">
+                      {day.weekday}, {day.date}
+                    </span>
+                  )}
+                </header>
+
+                <p className="mt-2 text-xs sm:text-sm text-slate-300 whitespace-pre-line">
+                  {day.description}
+                </p>
+
+                {day.noteFromElf && (
+                  <p className="mt-2 text-xs sm:text-sm text-emerald-300 italic">
+                    ✨ Note from Merry: “{day.noteFromElf}”
+                  </p>
+                )}
+
+                {day.imagePrompt && (
+                  <details className="mt-3 text-[11px] text-slate-400">
+                    <summary className="cursor-pointer text-slate-500 hover:text-slate-300">
+                      Show image prompt (for setup reference)
+                    </summary>
+                    <p className="mt-2 text-[11px] sm:text-xs whitespace-pre-line">
+                      {day.imagePrompt}
+                    </p>
+                  </details>
+                )}
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // -------- Plan display helper (unused but fine to keep) --------
   function formatPlanForDisplay(planState: PlanState): string {
     if (!planState) return '';
     if (typeof planState === 'string') return planState;
@@ -259,7 +329,7 @@ export default function SuccessClient() {
     return overview + dayLines.join('\n\n');
   }
 
-  const planText = formatPlanForDisplay(plan); // currently not rendered, but okay
+  const planText = formatPlanForDisplay(plan); // currently unused but okay
 
   // -------- Kick off hotline on mount --------
   useEffect(() => {
@@ -348,7 +418,7 @@ export default function SuccessClient() {
     }
   }
 
-  // -------- Generate full plan (new API: just sessionId) --------
+  // -------- Generate full plan --------
   async function handleGenerate() {
     setError(null);
 
@@ -398,7 +468,7 @@ export default function SuccessClient() {
     try {
       const timezone =
         Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London';
-      const hourLocal = 7; // 7am local (or whatever default you want)
+      const hourLocal = 7; // 7am local
 
       const res = await fetch('/api/subscribe-email-reminder', {
         method: 'POST',
@@ -419,7 +489,6 @@ export default function SuccessClient() {
       setReminderMsg(
         'Got it – I’ve emailed you your first Elf idea so you can see what to expect, and I’ll email you each morning as we begin.',
       );
-      
     } catch (err: any) {
       console.error(err);
       setReminderErr(err.message || 'Something went wrong. Please try again.');
@@ -428,13 +497,25 @@ export default function SuccessClient() {
 
   const canShowGenerate = !plan && (hotlineDone || hotlineSkipped);
 
+  const heading = hasPlanObject
+    ? 'Here’s your 30-night Elf plan 🎄'
+    : 'Your Elf-on-the-Shelf plan is ready to conjure 🎄';
+
+  const subcopy = hasPlanObject
+    ? 'Merry has brewed a personalised 30-night Elf plan just for your kiddo. Scroll down to see each night’s setup and tiny note from your Elf.'
+    : 'Now Merry will hop on a tiny “Elf hotline” chat to learn about your kiddo, then we’ll generate a personalised 30-day Elf plan for your family: simple nightly setups and short notes from your Elf.';
+
   // -------- JSX --------
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
       <div className="mx-auto w-full max-w-6xl space-y-8">
-        {/* HERO + STEPS + ELF CARD */}
-        <section className="grid gap-8 rounded-3xl border border-slate-800 bg-slate-900/70 p-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:p-8">
-          {/* LEFT: copy + Step 1 + Step 2 */}
+        {/* HERO + STEPS (+ PLAN or ELF CARD) */}
+        <section
+          className={`rounded-3xl border border-slate-800 bg-slate-900/70 p-6 md:p-8 ${
+            hasPlanObject ? 'space-y-6' : 'grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]'
+          }`}
+        >
+          {/* LEFT: header + steps + (plan when ready) */}
           <div className="space-y-6">
             {/* Hero copy */}
             <div>
@@ -442,14 +523,9 @@ export default function SuccessClient() {
                 Payment complete
               </p>
               <h1 className="mb-2 text-2xl font-semibold md:text-3xl">
-                Your Elf-on-the-Shelf plan is ready to conjure 🎄
+                {heading}
               </h1>
-              <p className="text-sm text-slate-300">
-                Now Merry will hop on a tiny “Elf hotline” chat to learn about
-                your kiddo, then we’ll generate a personalised 30-day Elf plan
-                just for your family: simple nightly setups and short notes from
-                your Elf.
-              </p>
+              <p className="text-sm text-slate-300">{subcopy}</p>
 
               {error && (
                 <p className="mt-3 text-xs text-red-400">{error}</p>
@@ -474,7 +550,7 @@ export default function SuccessClient() {
                     Elf Hotline with Merry
                   </h2>
                 </div>
-                {hotlineDone && (
+                {hotlineDone && !hasPlanObject && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-200">
                     ✅ Ready for Step 2
                   </span>
@@ -572,66 +648,73 @@ export default function SuccessClient() {
             </div>
 
             {/* STEP 2: GENERATE BUTTON */}
-            <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-emerald-300">
-                    Step 2
-                  </p>
-                  <h2 className="text-sm font-semibold md:text-base">
-                    Generate your 30-day Elf plan
-                  </h2>
+            {!hasPlanObject && (
+              <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+                      Step 2
+                    </p>
+                    <h2 className="text-sm font-semibold md:text-base">
+                      Generate your 30-day Elf plan
+                    </h2>
+                  </div>
                 </div>
+
+                <p className="text-xs text-slate-300">
+                  When you&apos;re ready, click the button and we&apos;ll use
+                  everything Merry learned to conjure a simple, low-effort plan:
+                  30 nights of Elf setups and short notes from your Elf.
+                </p>
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={
+                    isLoading ||
+                    !sessionId ||
+                    sessionLoading ||
+                    !elfSession ||
+                    !canShowGenerate
+                  }
+                  className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoading
+                    ? 'Brewing your Elf mischief…'
+                    : !canShowGenerate
+                    ? 'Finish or skip Step 1 to unlock'
+                    : sessionLoading || !elfSession
+                    ? 'Loading your Elf details…'
+                    : 'Generate my 30-day Elf plan'}
+                </button>
+
+                <p className="text-[11px] text-slate-400">
+                  You&apos;ll get your full plan shortly after this step.
+                </p>
               </div>
+            )}
 
-              <p className="text-xs text-slate-300">
-                When you&apos;re ready, click the button and we&apos;ll use
-                everything Merry learned to conjure a simple, low-effort plan:
-                30 nights of Elf setups and short notes from your Elf.
-              </p>
-
-              <button
-                onClick={handleGenerate}
-                disabled={
-                  isLoading ||
-                  !sessionId ||
-                  sessionLoading ||
-                  !elfSession ||
-                  !canShowGenerate
-                }
-                className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoading
-                  ? 'Brewing your Elf mischief…'
-                  : !canShowGenerate
-                  ? 'Finish or skip Step 1 to unlock'
-                  : sessionLoading || !elfSession
-                  ? 'Loading your Elf details…'
-                  : 'Generate my 30-day Elf plan'}
-              </button>
-
-              <p className="text-[11px] text-slate-400">
-                You&apos;ll get your full plan shortly after this step.
-              </p>
-            </div>
+            {/* When plan exists, show it full-width under the steps */}
+            {hasPlanObject && <PlanViewer plan={plan as ElfPlanObject} />}
           </div>
 
-          {/* RIGHT: Elf card */}
-          <div className="relative flex items-center justify-center">
-            <div className="absolute -inset-1 rounded-3xl bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.35),transparent_55%),radial-gradient(circle_at_80%_100%,rgba(56,189,248,0.25),transparent_55%)] opacity-80 blur-2xl" />
-            <div className="relative w-full max-w-xs rounded-2xl border border-slate-800 bg-slate-950/90 p-4 shadow-[0_25px_80px_rgba(15,23,42,0.95)]">
-              <img
-                src="/elf-pose.png"
-                alt="Merry the Elf posing on a stool"
-                className="h-auto w-full rounded-xl object-cover"
-              />
-              <p className="mt-3 text-[11px] text-slate-300">
-                This is Merry – your personal Elf planner. She’ll ask a few cosy
-                questions, then conjure ideas tuned to your kiddo and your
-                energy levels.
-              </p>
+          {/* RIGHT: Elf card (only before the plan exists) */}
+          {!hasPlanObject && (
+            <div className="relative flex items-center justify-center mt-4 md:mt-0">
+              <div className="absolute -inset-1 rounded-3xl bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.35),transparent_55%),radial-gradient(circle_at_80%_100%,rgba(56,189,248,0.25),transparent_55%)] opacity-80 blur-2xl" />
+              <div className="relative w-full max-w-xs sm:max-w-sm rounded-2xl border border-slate-800 bg-slate-950/90 p-4 shadow-[0_25px_80px_rgba(15,23,42,0.95)]">
+                <img
+                  src="/elf-pose.png"
+                  alt="Merry the Elf posing on a stool"
+                  className="h-auto w-full rounded-xl object-cover"
+                />
+                <p className="mt-3 text-[11px] sm:text-xs text-slate-300">
+                  This is Merry – your personal Elf planner. She’ll ask a few
+                  cosy questions, then conjure ideas tuned to your kiddo and
+                  your energy levels.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* NIGHTLY REMINDER SIGNUP */}

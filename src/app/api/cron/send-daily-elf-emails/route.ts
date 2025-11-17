@@ -28,101 +28,152 @@ function getTodayInTimezone(tz: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  console.log('[cron] send-daily-elf-emails HIT');
+
   // Optional simple auth so randoms can’t hit your cron route:
   const authHeader = req.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    console.warn('[cron] unauthorized request');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // Don’t pass a generic, just cast the result
-    const rawIds = await redis.smembers(REMINDER_SET_KEY);
-    const sessionIds = (rawIds ?? []) as string[];
+    // ---- FIXED: no generic, then cast to string[] ----
+    const sessionIds = (await redis.smembers(REMINDER_SET_KEY)) as string[];
+    console.log('[cron] reminder session IDs', sessionIds);
 
     if (!sessionIds || sessionIds.length === 0) {
+      console.log('[cron] no sessions in reminder set – exiting');
       return NextResponse.json({ ok: true, sent: 0 });
     }
 
     let sentCount = 0;
 
     for (const sessionId of sessionIds) {
+      console.log('[cron] processing session', sessionId);
+
       const session = await getElfSession(sessionId);
-      if (!session || !session.plan) continue;
+      if (!session) {
+        console.warn('[cron] no session found, skipping', { sessionId });
+        continue;
+      }
+      if (!session.plan || !session.plan.days || !session.reminderEmail) {
+        console.warn('[cron] missing plan or reminderEmail, skipping', {
+          sessionId,
+          hasPlan: !!session.plan,
+          hasDays: !!session.plan?.days,
+          reminderEmail: session.reminderEmail,
+        });
+        continue;
+      }
 
-      // These are stored but may not yet be in your TS type; use `any` to avoid noise
-      const reminderEmail =
-        (session as any).reminderEmail as string | null | undefined;
-      const reminderTimezone =
-        (session as any).reminderTimezone as string | null | undefined;
-
-      if (!reminderEmail) continue;
-
-      const tz = reminderTimezone || 'Europe/London';
+      const tz = session.reminderTimezone || 'Europe/London';
       const today = getTodayInTimezone(tz);
+      console.log('[cron] computed today for timezone', { sessionId, tz, today });
 
       const plan: any = session.plan;
-      if (!Array.isArray(plan.days)) continue;
-
       const todayPlan = plan.days.find((d: any) => d.date === today);
-      if (!todayPlan) continue; // no plan for today
+      if (!todayPlan) {
+        console.log('[cron] no day entry for today, skipping', { sessionId, today });
+        continue;
+      }
+
+      console.log('[cron] found todayPlan', {
+        sessionId,
+        title: todayPlan.title,
+        date: todayPlan.date,
+        hasImageUrl: !!todayPlan.imageUrl,
+        hasImagePrompt: !!todayPlan.imagePrompt,
+      });
 
       let imageUrl: string | null = todayPlan.imageUrl ?? null;
 
       // Lazily generate the image once, store URL
       if (!imageUrl && todayPlan.imagePrompt) {
         try {
-          const imgRes: any = await client.images.generate({
+          console.log('[cron] generating image for todayPlan via OpenAI', {
+            sessionId,
+            title: todayPlan.title,
+          });
+
+          const imgRes = await client.images.generate({
             model: 'gpt-image-1',
             prompt: todayPlan.imagePrompt,
             size: '1024x1024',
             n: 1,
           });
 
-          imageUrl = imgRes?.data?.[0]?.url ?? null;
+          // Safe narrowing around imgRes.data to satisfy TypeScript
+          const dataArray = (imgRes as any).data;
+          const first = Array.isArray(dataArray) ? dataArray[0] : undefined;
+          imageUrl =
+            first && typeof first.url === 'string'
+              ? (first.url as string)
+              : null;
+
+          console.log('[cron] OpenAI image generate response meta', {
+            hasData: Array.isArray(dataArray),
+            firstHasUrl: !!(first && first.url),
+            imageUrl,
+          });
 
           if (imageUrl) {
             const updatedDays = plan.days.map((d: any) =>
               d.date === today ? { ...d, imageUrl } : d,
             );
+
             await patchElfSession(sessionId, {
               plan: {
                 ...plan,
                 days: updatedDays,
               },
             });
+
+            console.log('[cron] stored imageUrl back into session plan', {
+              sessionId,
+              today,
+            });
+          } else {
+            console.warn(
+              '[cron] OpenAI returned no usable URL, continuing without image',
+              { sessionId },
+            );
           }
         } catch (err) {
           console.error('[cron] image generation failed for', sessionId, err);
-          // still send an email without an image
+          // we’ll still send an email without an image
         }
       }
 
       // Send email
       try {
+        console.log('[cron] sending nightly email via Resend', {
+          sessionId,
+          to: session.reminderEmail,
+          subject: `Tonight’s Elf idea: ${todayPlan.title}`,
+          includesImage: !!imageUrl,
+        });
+
         await resend.emails.send({
-          from: 'Merry the Elf <merry@yourdomain.com>',
-          to: reminderEmail,
+          from: 'Merry the Elf <merry@elfontheshelf.uk>', // make sure this matches a verified Resend domain
+          to: session.reminderEmail,
           subject: `Tonight’s Elf idea: ${todayPlan.title}`,
           html: buildElfEmailHtml({
             childName: session.childName ?? 'your kiddo',
-            planOverview: plan.planOverview || '',
-            day: {
-              weekday: todayPlan.weekday || '',
-              date: todayPlan.date,
-              title: todayPlan.title,
-              description: todayPlan.description,
-              noteFromElf: todayPlan.noteFromElf ?? null,
-            },
+            planOverview: plan.planOverview,
+            day: todayPlan,
             imageUrl,
           }),
         });
 
         sentCount += 1;
+        console.log('[cron] nightly email send call completed', { sessionId });
       } catch (err) {
         console.error('[cron] email send failed for', sessionId, err);
       }
     }
 
+    console.log('[cron] finished run', { sentCount });
     return NextResponse.json({ ok: true, sent: sentCount });
   } catch (err: any) {
     console.error('[cron] fatal error', err);
@@ -151,7 +202,7 @@ function buildElfEmailHtml(args: {
   <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a; padding:16px;">
     <h1 style="font-size:20px; margin-bottom:8px;">Tonight’s Elf-on-the-Shelf plan for ${childName}</h1>
     <p style="font-size:14px; color:#475569; margin-bottom:16px;">
-      ${planOverview}
+      ${planOverview ?? ''}
     </p>
 
     <h2 style="font-size:18px; margin:16px 0 4px;">${day.weekday} · ${day.title}</h2>
