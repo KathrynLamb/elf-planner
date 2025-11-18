@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { Resend } from 'resend';
 import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
 import { buildElfEmailHtml } from '@/lib/elfEmail';
+import { saveElfImageFromBase64 } from '@/lib/elfImageStore';
 
 export const runtime = 'nodejs';
 
@@ -89,7 +90,6 @@ export async function POST(req: NextRequest) {
 
     // 3) Ensure we have an image for this day
     let imageUrl: string | null = dayToSend.imageUrl ?? null;
-    let inlineImageBase64: string | null = null; // used for CID inline image
 
     if (!imageUrl && dayToSend.imagePrompt) {
       try {
@@ -117,10 +117,8 @@ export async function POST(req: NextRequest) {
         });
 
         if (first?.b64_json) {
-          // gpt-image-1 always returns base64
-          inlineImageBase64 = first.b64_json;
-          // optional: store a data URL in the session so your UI can show it
-          imageUrl = `data:image/png;base64,${first.b64_json}`;
+          // Save base64 in Redis and get a short HTTPS URL
+          imageUrl = await saveElfImageFromBase64(first.b64_json);
         } else {
           console.warn(
             '[subscribe-email-reminder] OpenAI image response had no b64_json',
@@ -128,7 +126,7 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // persist the image back onto the correct day if we got one
+        // Persist the image URL back onto the correct day if we got one
         if (imageUrl) {
           const updatedDays = days.map((d) =>
             d.date === dayToSend.date ? { ...d, imageUrl } : d,
@@ -152,15 +150,13 @@ export async function POST(req: NextRequest) {
       session.childName ?? 'your kiddo'
     }`;
 
-    const imageCid = inlineImageBase64 ? 'elf-inline-image' : null;
-
     console.log(
       '[subscribe-email-reminder] sending preview nightly-style email via Resend',
       {
         to: email,
         sessionId,
         subject,
-        includesImage: !!inlineImageBase64,
+        includesImage: !!imageUrl,
       },
     );
 
@@ -178,19 +174,8 @@ export async function POST(req: NextRequest) {
           description: dayToSend.description,
           noteFromElf: dayToSend.noteFromElf,
         },
-        imageCid,
+        imageUrl, // ✅ only URL, no CID
       }),
-      attachments: inlineImageBase64
-        ? [
-            {
-              // Resend attachments: base64 string is fine
-              content: inlineImageBase64,
-              filename: 'tonights-elf-idea.png',
-              // use contentId (camelCase) for CID
-              contentId: imageCid!,
-            },
-          ]
-        : undefined,
     });
 
     console.log(
