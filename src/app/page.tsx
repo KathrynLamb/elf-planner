@@ -587,7 +587,7 @@ function MiniChatSection() {
       id="ai-mini-chat"
       className="grid gap-8 rounded-3xl border border-slate-800/80 bg-slate-900/70 p-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:p-10"
     >
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-50 md:text-2xl">
           Try a free mini chat with Merry
         </h2>
@@ -615,7 +615,7 @@ function MiniChatSection() {
           Tip: For the best preview, mention your child’s name, age range, and
           anything they’re worried about (monsters, school, bedtime, etc.)
         </p>
-      </div>
+      </div> */}
 
       {/* Chat UI + CTA */}
       <div className="relative">

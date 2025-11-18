@@ -88,6 +88,9 @@ export async function POST(req: NextRequest) {
           n: 1,
         });
 
+        console.log("IMG ", imgRes)
+
+
         const first = imgRes.data?.[0] as any | undefined;
         imageUrl = first?.url ?? null;
 
@@ -108,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     // 4) Send immediate "here’s what your nightly emails look like" email
     await resend.emails.send({
-      from: 'Merry the Elf <merry@yourdomain.com>',
+      from: 'Merry the Elf <merry@elfontheshelf.uk>',
       to: email,
       subject: `Here’s tonight’s Elf idea for ${session.childName ?? 'your kiddo'}`,
       html: buildElfEmailHtml({

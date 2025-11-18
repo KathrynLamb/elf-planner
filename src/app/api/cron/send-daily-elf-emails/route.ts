@@ -103,6 +103,8 @@ export async function GET(req: NextRequest) {
             n: 1,
           });
 
+          console.log("IMG ", imgRes)
+
           // Safe narrowing around imgRes.data to satisfy TypeScript
           const dataArray = (imgRes as any).data;
           const first = Array.isArray(dataArray) ? dataArray[0] : undefined;
