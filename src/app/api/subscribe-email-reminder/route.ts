@@ -4,7 +4,6 @@ import OpenAI from 'openai';
 import { Resend } from 'resend';
 import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
 import { buildElfEmailHtml } from '@/lib/elfEmail';
-import { uploadElfImageFromBase64 } from '@/lib/uploadElfImage';
 import { saveElfImageFromBase64 } from '@/lib/elfImageStore';
 
 export const runtime = 'nodejs';
@@ -54,7 +53,10 @@ export async function POST(req: NextRequest) {
       session.plan.days.length === 0
     ) {
       return NextResponse.json(
-        { message: 'No Elf plan found yet. Please generate your plan first.' },
+        {
+          message:
+            'No Elf plan found yet. Please generate your plan first.',
+        },
         { status: 400 },
       );
     }
@@ -86,33 +88,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3) Ensure we have an image for this day
+    // 3) Ensure we have an image for this day (URL only)
     let imageUrl: string | null = dayToSend.imageUrl ?? null;
 
     if (!imageUrl && dayToSend.imagePrompt) {
       try {
         console.log(
           '[subscribe-email-reminder] generating image for reminder day',
-          { sessionId, title: dayToSend.title },
+          {
+            sessionId,
+            title: dayToSend.title,
+          },
         );
-    
+
         const imgRes = await client.images.generate({
           model: 'gpt-image-1',
           prompt: dayToSend.imagePrompt,
           size: '1024x1024',
           n: 1,
         });
-    
+
         const first = imgRes.data?.[0] as { b64_json?: string } | undefined;
-    
+
         console.log('[subscribe-email-reminder] IMG meta', {
           created: imgRes.created,
           hasData: !!imgRes.data?.length,
           hasB64: !!first?.b64_json,
         });
-    
+
         if (first?.b64_json) {
-          // save in Redis and get a short HTTPS URL we can use in email
+          // ✅ Save base64 in Redis and get a short HTTPS URL
           imageUrl = await saveElfImageFromBase64(first.b64_json);
         } else {
           console.warn(
@@ -120,12 +125,13 @@ export async function POST(req: NextRequest) {
             { sessionId },
           );
         }
-    
+
+        // persist the image URL back onto the correct day if we got one
         if (imageUrl) {
           const updatedDays = days.map((d) =>
             d.date === dayToSend.date ? { ...d, imageUrl } : d,
           );
-    
+
           await patchElfSession(sessionId, {
             plan: { ...plan, days: updatedDays },
           });
@@ -138,17 +144,12 @@ export async function POST(req: NextRequest) {
         // fine: we can still send email without image
       }
     }
-    
-
-    
-
-    // 4) Send immediate "here’s what your nightly emails look like" email
 
     // 4) Send immediate "here’s what your nightly emails look like" email
     const subject = `Here’s tonight’s Elf idea for ${
       session.childName ?? 'your kiddo'
     }`;
-    
+
     console.log(
       '[subscribe-email-reminder] sending preview nightly-style email via Resend',
       {
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
         includesImage: !!imageUrl,
       },
     );
-    
+
     await resend.emails.send({
       from: 'Merry the Elf <merry@elfontheshelf.uk>',
       to: email,
@@ -173,14 +174,16 @@ export async function POST(req: NextRequest) {
           description: dayToSend.description,
           noteFromElf: dayToSend.noteFromElf,
         },
-        imageUrl, // ✅ only this now
+        imageUrl, // ✅ only URL, never base64
       }),
     });
-    
 
-    console.log('[subscribe-email-reminder] preview email send call completed', {
-      sessionId,
-    });
+    console.log(
+      '[subscribe-email-reminder] preview email send call completed',
+      {
+        sessionId,
+      },
+    );
 
     return NextResponse.json({
       ok: true,
