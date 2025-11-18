@@ -145,49 +145,51 @@ if (!imageUrl && dayToSend.imagePrompt) {
 
     // 4) Send immediate "here’s what your nightly emails look like" email
 
-    const subject = `Here’s tonight’s Elf idea for ${
-      session.childName ?? 'your kiddo'
-    }`;
-    
-    const imageCid = inlineImageBase64 ? 'elf-inline-image' : null;
-    
-    console.log(
-      '[subscribe-email-reminder] sending preview nightly-style email via Resend',
-      {
-        to: email,
-        sessionId,
-        subject,
-        includesImage: !!inlineImageBase64,
-      },
-    );
-    
-    await resend.emails.send({
-      from: 'Merry the Elf <merry@elfontheshelf.uk>',
-      to: email,
-      subject,
-      html: buildElfEmailHtml({
-        childName: session.childName ?? 'your kiddo',
-        planOverview: plan.planOverview ?? '',
-        day: {
-          weekday: dayToSend.weekday,
-          date: dayToSend.date,
-          title: dayToSend.title,
-          description: dayToSend.description,
-          noteFromElf: dayToSend.noteFromElf,
+    // 4) Send immediate "here’s what your nightly emails look like" email
+const subject = `Here’s tonight’s Elf idea for ${
+  session.childName ?? 'your kiddo'
+}`;
+
+const imageCid = inlineImageBase64 ? 'elf-inline-image' : null;
+
+console.log(
+  '[subscribe-email-reminder] sending preview nightly-style email via Resend',
+  {
+    to: email,
+    sessionId,
+    subject,
+    includesImage: !!imageCid || !!imageUrl,
+  },
+);
+
+await resend.emails.send({
+  from: 'Merry the Elf <merry@elfontheshelf.uk>',
+  to: email,
+  subject,
+  html: buildElfEmailHtml({
+    childName: session.childName ?? 'your kiddo',
+    planOverview: plan.planOverview ?? '',
+    day: {
+      weekday: dayToSend.weekday,
+      date: dayToSend.date,
+      title: dayToSend.title,
+      description: dayToSend.description,
+      noteFromElf: dayToSend.noteFromElf,
+    },
+    imageCid,  // CID if we generated in this request
+    imageUrl,  // fallback to existing URL from the plan
+  }),
+  attachments: inlineImageBase64
+    ? [
+        {
+          content: inlineImageBase64,
+          filename: 'tonights-elf-idea.png',
+          contentId: imageCid!, // important: camelCase
         },
-        imageCid,
-      }),
-      attachments: inlineImageBase64
-        ? [
-            {
-              content: inlineImageBase64,
-              filename: 'tonights-elf-idea.png',
-              contentId: imageCid!, // 👈 important
-            },
-          ]
-        : undefined,
-    });
-    
+      ]
+    : undefined,
+});
+
 
     console.log('[subscribe-email-reminder] preview email send call completed', {
       sessionId,
