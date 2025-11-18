@@ -65,9 +65,9 @@ export function buildElfEmailHtml(args: {
       description: string;
       noteFromElf?: string | null;
     };
-    imageUrl: string | null;
+    imageCid: string | null;
   }) {
-    const { childName, planOverview, day, imageUrl } = args;
+    const { childName, planOverview, day, imageCid } = args;
   
     const headerLine =
       (day.weekday && day.date)
@@ -99,9 +99,9 @@ export function buildElfEmailHtml(args: {
       }
   
       ${
-        imageUrl
+        imageCid
           ? `<div style="margin-top:12px;">
-               <img src="${imageUrl}" alt="Tonight's Elf setup idea" style="max-width:100%; border-radius:12px;" />
+          <img src="cid:${imageCid}" alt="Tonight's Elf setup idea" style="max-width:100%; border-radius:12px;" />
              </div>`
           : ''
       }

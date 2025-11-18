@@ -45,9 +45,17 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await getElfSession(sessionId);
-    if (!session || !session.plan || !session.plan.days || session.plan.days.length === 0) {
+    if (
+      !session ||
+      !session.plan ||
+      !session.plan.days ||
+      session.plan.days.length === 0
+    ) {
       return NextResponse.json(
-        { message: 'No Elf plan found yet. Please generate your plan first.' },
+        {
+          message:
+            'No Elf plan found yet. Please generate your plan first.',
+        },
         { status: 400 },
       );
     }
@@ -62,10 +70,10 @@ export async function POST(req: NextRequest) {
     await redis.sadd(REMINDER_SET_KEY, sessionId);
 
     const plan = session.plan;
+    const days = plan.days as any[];
 
     // 2) Decide which day to send immediately
     const today = getTodayInTimezone(timezone);
-    const days = plan.days as any[];
 
     let dayToSend =
       days.find((d) => d.date === today) ||
@@ -73,14 +81,26 @@ export async function POST(req: NextRequest) {
       days[0];
 
     if (!dayToSend) {
-      return NextResponse.json({ ok: true, message: 'Reminder saved, but no day to send.' });
+      return NextResponse.json({
+        ok: true,
+        message: 'Reminder saved, but no day to send.',
+      });
     }
 
     // 3) Ensure we have an image for this day
     let imageUrl: string | null = dayToSend.imageUrl ?? null;
+    let inlineImageBase64: string | null = null; // used for CID inline image
 
     if (!imageUrl && dayToSend.imagePrompt) {
       try {
+        console.log(
+          '[subscribe-email-reminder] generating image for reminder day',
+          {
+            sessionId,
+            title: dayToSend.title,
+          },
+        );
+
         const imgRes = await client.images.generate({
           model: 'gpt-image-1',
           prompt: dayToSend.imagePrompt,
@@ -88,12 +108,27 @@ export async function POST(req: NextRequest) {
           n: 1,
         });
 
-        console.log("IMG ", imgRes)
+        const first = imgRes.data?.[0] as { b64_json?: string } | undefined;
 
+        console.log('[subscribe-email-reminder] IMG meta', {
+          created: imgRes.created,
+          hasData: !!imgRes.data?.length,
+          hasB64: !!first?.b64_json,
+        });
 
-        const first = imgRes.data?.[0] as any | undefined;
-        imageUrl = first?.url ?? null;
+        if (first?.b64_json) {
+          // gpt-image-1 always returns base64
+          inlineImageBase64 = first.b64_json;
+          // optional: store a data URL in the session so your UI can show it
+          imageUrl = `data:image/png;base64,${first.b64_json}`;
+        } else {
+          console.warn(
+            '[subscribe-email-reminder] OpenAI image response had no b64_json',
+            { sessionId },
+          );
+        }
 
+        // persist the image back onto the correct day if we got one
         if (imageUrl) {
           const updatedDays = days.map((d) =>
             d.date === dayToSend.date ? { ...d, imageUrl } : d,
@@ -104,16 +139,35 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (err) {
-        console.error('[subscribe-email-reminder] image generation failed', err);
+        console.error(
+          '[subscribe-email-reminder] image generation failed',
+          err,
+        );
         // fine: we can still send email without image
       }
     }
 
     // 4) Send immediate "here’s what your nightly emails look like" email
+    const subject = `Here’s tonight’s Elf idea for ${
+      session.childName ?? 'your kiddo'
+    }`;
+
+    const imageCid = inlineImageBase64 ? 'elf-inline-image' : null;
+
+    console.log(
+      '[subscribe-email-reminder] sending preview nightly-style email via Resend',
+      {
+        to: email,
+        sessionId,
+        subject,
+        includesImage: !!inlineImageBase64,
+      },
+    );
+
     await resend.emails.send({
       from: 'Merry the Elf <merry@elfontheshelf.uk>',
       to: email,
-      subject: `Here’s tonight’s Elf idea for ${session.childName ?? 'your kiddo'}`,
+      subject,
       html: buildElfEmailHtml({
         childName: session.childName ?? 'your kiddo',
         planOverview: plan.planOverview ?? '',
@@ -124,9 +178,27 @@ export async function POST(req: NextRequest) {
           description: dayToSend.description,
           noteFromElf: dayToSend.noteFromElf,
         },
-        imageUrl,
+        imageCid,
       }),
+      attachments: inlineImageBase64
+        ? [
+            {
+              // Resend attachments: base64 string is fine
+              content: inlineImageBase64,
+              filename: 'tonights-elf-idea.png',
+              // use contentId (camelCase) for CID
+              contentId: imageCid!,
+            },
+          ]
+        : undefined,
     });
+
+    console.log(
+      '[subscribe-email-reminder] preview email send call completed',
+      {
+        sessionId,
+      },
+    );
 
     return NextResponse.json({
       ok: true,
@@ -136,7 +208,10 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error('[subscribe-email-reminder] error', err);
     return NextResponse.json(
-      { message: 'Error saving reminder or sending preview email.', error: err?.message },
+      {
+        message: 'Error saving reminder or sending preview email.',
+        error: err?.message,
+      },
       { status: 500 },
     );
   }

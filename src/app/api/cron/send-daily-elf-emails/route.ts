@@ -32,13 +32,15 @@ export async function GET(req: NextRequest) {
 
   // Optional simple auth so randoms can’t hit your cron route:
   const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (
+    process.env.CRON_SECRET &&
+    authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  ) {
     console.warn('[cron] unauthorized request');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // ---- FIXED: no generic, then cast to string[] ----
     const sessionIds = (await redis.smembers(REMINDER_SET_KEY)) as string[];
     console.log('[cron] reminder session IDs', sessionIds);
 
@@ -69,12 +71,19 @@ export async function GET(req: NextRequest) {
 
       const tz = session.reminderTimezone || 'Europe/London';
       const today = getTodayInTimezone(tz);
-      console.log('[cron] computed today for timezone', { sessionId, tz, today });
+      console.log('[cron] computed today for timezone', {
+        sessionId,
+        tz,
+        today,
+      });
 
       const plan: any = session.plan;
       const todayPlan = plan.days.find((d: any) => d.date === today);
       if (!todayPlan) {
-        console.log('[cron] no day entry for today, skipping', { sessionId, today });
+        console.log('[cron] no day entry for today, skipping', {
+          sessionId,
+          today,
+        });
         continue;
       }
 
@@ -87,8 +96,9 @@ export async function GET(req: NextRequest) {
       });
 
       let imageUrl: string | null = todayPlan.imageUrl ?? null;
+      let inlineImageBase64: string | null = null;
 
-      // Lazily generate the image once, store URL
+      // Lazily generate the image once, store URL-ish data in plan + use base64 as CID attachment
       if (!imageUrl && todayPlan.imagePrompt) {
         try {
           console.log('[cron] generating image for todayPlan via OpenAI', {
@@ -103,21 +113,24 @@ export async function GET(req: NextRequest) {
             n: 1,
           });
 
-          console.log("IMG ", imgRes)
-
-          // Safe narrowing around imgRes.data to satisfy TypeScript
-          const dataArray = (imgRes as any).data;
-          const first = Array.isArray(dataArray) ? dataArray[0] : undefined;
-          imageUrl =
-            first && typeof first.url === 'string'
-              ? (first.url as string)
-              : null;
+          const first = imgRes.data?.[0] as { b64_json?: string } | undefined;
 
           console.log('[cron] OpenAI image generate response meta', {
-            hasData: Array.isArray(dataArray),
-            firstHasUrl: !!(first && first.url),
-            imageUrl,
+            created: imgRes.created,
+            hasData: !!imgRes.data?.length,
+            hasB64: !!first?.b64_json,
           });
+
+          if (first?.b64_json) {
+            inlineImageBase64 = first.b64_json;
+            // for your app UI we can stash a data URL on the plan
+            imageUrl = `data:image/png;base64,${first.b64_json}`;
+          } else {
+            console.warn(
+              '[cron] OpenAI returned no usable base64, continuing without image',
+              { sessionId },
+            );
+          }
 
           if (imageUrl) {
             const updatedDays = plan.days.map((d: any) =>
@@ -135,37 +148,50 @@ export async function GET(req: NextRequest) {
               sessionId,
               today,
             });
-          } else {
-            console.warn(
-              '[cron] OpenAI returned no usable URL, continuing without image',
-              { sessionId },
-            );
           }
         } catch (err) {
-          console.error('[cron] image generation failed for', sessionId, err);
+          console.error(
+            '[cron] image generation failed for session',
+            sessionId,
+            err,
+          );
           // we’ll still send an email without an image
         }
       }
 
       // Send email
       try {
+        const subject = `Tonight’s Elf idea: ${todayPlan.title}`;
+        const imageCid = inlineImageBase64 ? 'elf-inline-image' : null;
+
         console.log('[cron] sending nightly email via Resend', {
           sessionId,
           to: session.reminderEmail,
-          subject: `Tonight’s Elf idea: ${todayPlan.title}`,
-          includesImage: !!imageUrl,
+          subject,
+          includesImage: !!inlineImageBase64,
         });
 
         await resend.emails.send({
-          from: 'Merry the Elf <merry@elfontheshelf.uk>', // make sure this matches a verified Resend domain
+          from: 'Merry the Elf <merry@elfontheshelf.uk>', // verified Resend domain
           to: session.reminderEmail,
-          subject: `Tonight’s Elf idea: ${todayPlan.title}`,
+          subject,
           html: buildElfEmailHtml({
             childName: session.childName ?? 'your kiddo',
             planOverview: plan.planOverview,
             day: todayPlan,
-            imageUrl,
+            imageCid,
           }),
+          attachments: inlineImageBase64
+          ? [
+              {
+                content: inlineImageBase64,
+                filename: 'tonights-elf-idea.png',
+                // CID-style inline image
+                contentId: imageCid!,
+              },
+            ]
+          : undefined,
+        
         });
 
         sentCount += 1;
@@ -186,6 +212,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Local HTML builder – matches the shape used above
 function buildElfEmailHtml(args: {
   childName: string;
   planOverview: string;
@@ -196,9 +223,9 @@ function buildElfEmailHtml(args: {
     description: string;
     noteFromElf?: string | null;
   };
-  imageUrl: string | null;
+  imageCid: string | null;
 }) {
-  const { childName, planOverview, day, imageUrl } = args;
+  const { childName, planOverview, day, imageCid } = args;
 
   return `
   <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#0f172a; padding:16px;">
@@ -221,9 +248,9 @@ function buildElfEmailHtml(args: {
     }
 
     ${
-      imageUrl
+      imageCid
         ? `<div style="margin-top:12px;">
-             <img src="${imageUrl}" alt="Tonight's Elf setup idea" style="max-width:100%; border-radius:12px;" />
+             <img src="cid:${imageCid}" alt="Tonight's Elf setup idea" style="max-width:100%; border-radius:12px;" />
            </div>`
         : ''
     }
