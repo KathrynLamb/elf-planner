@@ -110,8 +110,9 @@ export async function GET(req: NextRequest) {
           const imgRes = await client.images.generate({
             model: 'gpt-image-1',
             prompt: todayPlan.imagePrompt,
-            size: '1024x1024',
+            size: '256x256',
             n: 1,
+            quality: 'low'
           });
 
           const first = imgRes.data?.[0] as { b64_json?: string } | undefined;
