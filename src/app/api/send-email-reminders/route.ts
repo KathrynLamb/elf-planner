@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         const imgRes = await client.images.generate({
           model: 'gpt-image-1',
           prompt: dayToSend.imagePrompt,
-          size: '256x256',
+          size: 'auto',
           n: 1,
           quality: 'low'
         });
