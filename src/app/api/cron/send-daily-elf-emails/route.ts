@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
             prompt: constructedPrompt,
             size: 'auto',
             n: 1,
-            quality: 'medium'
+            quality: 'low'
           });
 
           const first = imgRes.data?.[0] as { b64_json?: string } | undefined;
