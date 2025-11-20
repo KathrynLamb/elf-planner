@@ -3,6 +3,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { StoredElfPlan } from '@/lib/elfStore';
+
+// import type { StoredElfPlan, ChatTurn } from 
+
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
 
@@ -35,6 +39,7 @@ type ElfPlanObject = {
   days?: ElfPlanDay[];
 };
 
+
 type PlanState = string | ElfPlanObject | null;
 
 export default function SuccessClient() {
@@ -57,6 +62,8 @@ export default function SuccessClient() {
   const [hotlineDone, setHotlineDone] = useState(false);
   const [hotlineSkipped, setHotlineSkipped] = useState(false);
 
+  const [hydratedFromSession, setHydratedFromSession] = useState(false);
+
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] =
     useState<MediaRecorder | null>(null);
@@ -67,13 +74,13 @@ export default function SuccessClient() {
   // -------- Load session from Redis via API --------
   useEffect(() => {
     if (!sessionId) return;
-
+  
     let cancelled = false;
-
+  
     async function loadSession() {
       setSessionLoading(true);
       setError(null);
-
+  
       try {
         const res = await fetch(`/api/elf-session?sessionId=${sessionId}`);
         if (!res.ok) {
@@ -84,21 +91,92 @@ export default function SuccessClient() {
             );
           }
         }
-
+  
         const data = await res.json();
-        if (!cancelled) {
-          const fullSession = data.session as any;
-          console.log('[Success page] full Elf session from API:', fullSession);
+if (cancelled) return;
 
-          setPlan(fullSession.plan);
-          setElfSession({
-            sessionId: fullSession.sessionId,
-            childName: fullSession.childName,
-            ageRange: fullSession.ageRange,
-            startDate: fullSession.startDate,
-            vibe: fullSession.vibe,
-          });
-        }
+const fullSession = data.session as StoredElfPlan;
+console.log('[Success page] full Elf session from API:', fullSession);
+
+// existing plan + essentials
+setPlan((fullSession.plan ?? null) as PlanState);
+
+setElfSession({
+  sessionId: fullSession.sessionId,
+  childName: fullSession.childName ?? 'your child',
+  ageRange: fullSession.ageRange ?? '',
+  startDate: fullSession.startDate ?? '',
+  vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
+});
+
+// 🔥 hydrate chat from stored transcripts
+const hydrated: ChatMessage[] = [];
+
+// 1) mini intro chat
+if (Array.isArray(fullSession.introChatTranscript)) {
+  fullSession.introChatTranscript.forEach((turn, idx) => {
+    hydrated.push({
+      id: `intro-${idx}`,
+      from: turn.role === 'assistant' ? 'elf' : 'parent',
+      text: turn.content,
+    });
+  });
+}
+
+// 2) miniPreview
+if (fullSession.miniPreview) {
+  hydrated.push({
+    id: 'mini-preview',
+    from: 'elf',
+    text: fullSession.miniPreview,
+  });
+}
+
+// 3) hotline transcript
+// 3) hotline transcript (support both legacy + new shapes)
+if (Array.isArray(fullSession.hotlineTranscript)) {
+  (fullSession.hotlineTranscript as any[]).forEach((turn, idx) => {
+    // LEGACY SHAPE: directly stored ChatTurn { role, content }
+    if (turn && typeof turn === 'object' && 'role' in turn && 'content' in turn) {
+      hydrated.push({
+        id: `hotline-${idx}`,
+        from: turn.role === 'assistant' ? 'elf' : 'parent',
+        text: turn.content as string,
+      });
+      return;
+    }
+
+    // NEW SHAPE: { at, messages: ChatTurn[], reply: string }
+    if (turn && Array.isArray((turn as any).messages)) {
+      (turn as any).messages.forEach((m: any, mIdx: number) => {
+        if (!m || typeof m.content !== 'string') return;
+
+        hydrated.push({
+          id: `hotline-${idx}-m-${mIdx}`,
+          from: m.role === 'assistant' ? 'elf' : 'parent',
+          text: m.content,
+        });
+      });
+
+      if (typeof (turn as any).reply === 'string' && (turn as any).reply.trim()) {
+        hydrated.push({
+          id: `hotline-${idx}-reply`,
+          from: 'elf',
+          text: (turn as any).reply,
+        });
+      }
+    }
+  });
+}
+
+
+if (hydrated.length > 0) {
+  setChatMessages(hydrated);
+}
+
+// ✅ mark hydration complete
+setHydratedFromSession(true);
+
       } catch (err: any) {
         console.error(err);
         if (!cancelled) {
@@ -108,24 +186,16 @@ export default function SuccessClient() {
           );
         }
       } finally {
-        if (!cancelled) {
-          setSessionLoading(false);
-        }
+        if (!cancelled) setSessionLoading(false);
       }
     }
-
+  
     loadSession();
     return () => {
       cancelled = true;
     };
   }, [sessionId]);
-
-  useEffect(() => {
-    if (elfSession) {
-      console.log('[Success page] UI ElfSession subset:', elfSession);
-    }
-  }, [elfSession]);
-
+  
   // -------- Voice hotline helpers (not wired to UI yet, but ready) --------
   async function startRecording() {
     try {
@@ -332,47 +402,55 @@ export default function SuccessClient() {
   const planText = formatPlanForDisplay(plan); // currently unused but okay
 
   // -------- Kick off hotline on mount --------
-  useEffect(() => {
-    if (!sessionId) return;
-    if (chatMessages.length > 0) return;
+  // -------- Kick off hotline on mount (only for fresh sessions) --------
+useEffect(() => {
+  if (!sessionId) return;
 
-    let cancelled = false;
+  // Wait until we've tried to hydrate from Redis
+  if (!hydratedFromSession) return;
 
-    async function startHotline() {
-      try {
-        setChatLoading(true);
-        const res = await fetch('/api/elf-hotline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
-        });
+  // If hydration gave us any messages (mini preview or hotline),
+  // don't auto-start – user can just continue from there.
+  if (chatMessages.length > 0) return;
 
-        if (!res.ok) {
-          console.error('Elf hotline start failed');
-          return;
-        }
+  let cancelled = false;
 
-        const data = await res.json();
-        if (cancelled) return;
+  async function startHotline() {
+    try {
+      setChatLoading(true);
+      const res = await fetch('/api/elf-hotline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
 
-        setChatMessages([
-          {
-            id: 'elf-0',
-            from: 'elf',
-            text: data.reply,
-          },
-        ]);
-        setHotlineDone(data.done ?? false);
-      } finally {
-        if (!cancelled) setChatLoading(false);
+      if (!res.ok) {
+        console.error('Elf hotline start failed');
+        return;
       }
-    }
 
-    startHotline();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId, chatMessages.length]);
+      const data = await res.json();
+      if (cancelled) return;
+
+      setChatMessages([
+        {
+          id: 'elf-0',
+          from: 'elf',
+          text: data.reply,
+        },
+      ]);
+      setHotlineDone(data.done ?? false);
+    } finally {
+      if (!cancelled) setChatLoading(false);
+    }
+  }
+
+  startHotline();
+  return () => {
+    cancelled = true;
+  };
+}, [sessionId, hydratedFromSession, chatMessages.length]);
+
 
   // -------- Text hotline --------
   async function handleSendHotline(e: React.FormEvent) {
@@ -399,9 +477,21 @@ export default function SuccessClient() {
       });
 
       if (!res.ok) {
-        console.error('Elf hotline turn failed');
+        let details: any = null;
+        try {
+          details = await res.json();
+        } catch {
+          // ignore
+        }
+        console.error('Elf hotline turn failed', details);
+        setError(
+          details?.message ||
+            'Something went wrong talking to Merry. Please refresh and try again.',
+        );
+        setChatLoading(false);
         return;
       }
+      
 
       const data = await res.json();
 

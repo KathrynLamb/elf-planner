@@ -13,6 +13,17 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const REMINDER_SET_KEY = 'elf:reminder:sessions';
 
+const ELF_BASE_IMAGE_STYLE = `
+Photorealistic cosy December morning in a family home.
+Soft warm fairy lights and bokeh in the background, shallow depth of field.
+Wide shot that clearly shows how to recreate the setup: include the elf, all key props, and how things are attached or arranged.
+Vertical framing as if for Instagram or Pinterest, no text overlays.
+No people or children in frame, just the elf and environment.
+A small handwritten note from the elf is visible in the scene, but not zoomed in.
+Friendly red-and-green Christmas elf doll with a kind, playful face.
+`;
+
+
 // Small helper: get "today" string in YYYY-MM-DD for a timezone
 function getTodayInTimezone(tz: string): string {
   const now = new Date();
@@ -33,14 +44,14 @@ export async function GET(req: NextRequest) {
   console.log('[cron] send-daily-elf-emails HIT');
 
   // Optional simple auth so randoms can’t hit your cron route:
-  const authHeader = req.headers.get('authorization');
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    console.warn('[cron] unauthorized request');
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
+  // const authHeader = req.headers.get('authorization');
+  // if (
+  //   process.env.CRON_SECRET &&
+  //   authHeader !== `Bearer ${process.env.CRON_SECRET}`
+  // ) {
+  //   console.warn('[cron] unauthorized request');
+  //   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  // }
 
   try {
     const sessionIds = (await redis.smembers(REMINDER_SET_KEY)) as string[];
@@ -107,12 +118,17 @@ export async function GET(req: NextRequest) {
             title: todayPlan.title,
           });
 
+          const constructedPrompt =
+          `Holiday elf-on-the-shelf style setup reference photo. ` +
+          `${ELF_BASE_IMAGE_STYLE}\n\n` +
+          `Scene description for this specific setup: ${todayPlan.imagePrompt}`;
+        
           const imgRes = await client.images.generate({
             model: 'gpt-image-1',
-            prompt: todayPlan.imagePrompt,
+            prompt: constructedPrompt,
             size: 'auto',
             n: 1,
-            quality: 'low'
+            quality: 'medium'
           });
 
           const first = imgRes.data?.[0] as { b64_json?: string } | undefined;

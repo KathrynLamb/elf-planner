@@ -22,10 +22,11 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.16),_transparent_55%)]" />
       </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-24 px-4 pb-20 pt-10 md:pt-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-10 pt-10 md:pt-16">
         <HeroSection />
-        <HowItWorksSection />
         <MiniChatSection />
+        <HowItWorksSection />
+
         {/* <AiPreviewSection /> */}
         <WhatYouGetSection />
         <SocialProofSection />
@@ -36,108 +37,82 @@ export default function HomePage() {
   );
 }
 
-function HeroSection() {
-  return (
-    <section
-      id="top"
-      className="grid items-center gap-12 rounded-3xl border border-slate-800/70 bg-slate-900/60 p-6 shadow-[0_0_60px_rgba(15,23,42,0.8)] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:p-10"
-    >
-      <div className="space-y-6">
-        <p className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
-          <Sparkles className="h-3 w-3" />
-          Elf Planner
-        </p>
+export function HeroSection() {
+  // simple helper to smooth-scroll to a section by id
+  function scrollToSection(id: string) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-        <div className="space-y-3">
-          <h1 className="text-balance text-3xl font-semibold leading-tight text-slate-50 sm:text-4xl md:text-5xl">
-            30 nights of Elf-on-the-Shelf magic,
+  return (
+    <section className="bg-slate-950">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
+        {/* Left: copy */}
+        <div className="flex-1 text-center lg:text-left">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+            Elf-on-the-Shelf, without the mental load
+          </p>
+
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
+            Wake up to Elf magic,
             <span className="block text-emerald-300">
-              planned for tired grown-ups.
+              not parent panic.
             </span>
           </h1>
-          <p className="max-w-xl text-pretty text-sm text-slate-200/80 sm:text-base">
-            Merry the Elf (our friendly AI) chats with you like a cosy hotline,
-            then conjures a personalised 30-night Elf plan for your child:
-            simple nightly setups, tiny notes you can copy-paste, and almost no
-            weekday mess.
+
+          <p className="mt-4 max-w-xl text-base text-slate-300 sm:text-lg">
+            Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf setup to do
+            after bedtime – plus a tiny note for your child to discover in the morning.
+            Built for knackered parents, kind to sensitive kids, and tailored to your time,
+            mess tolerance, and family traditions.
           </p>
-        </div>
 
-        <div className="space-y-3 text-sm text-slate-300">
-          <p>Here’s how it works:</p>
-          <ul className="space-y-1 text-sm text-slate-300">
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
-              <span>
-                Chat to Merry for a free mini preview of your Elf December.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
-              <span>
-                Love it? Unlock your full 30-night plan instantly with secure
-                PayPal checkout.
-              </span>
-            </li>
-          </ul>
-        </div>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start sm:gap-4">
+            <button
+              type="button"
+              onClick={() => scrollToSection('mini-chat')}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-7 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+            >
+              Meet Merry &amp; get your plan
+            </button>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <a
-            href="#ai-mini-chat"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-300"
-          >
-            Get a free mini Elf plan
-            <ArrowRight className="h-4 w-4" />
-          </a>
-          <a
-            href="#how-it-works"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-700 bg-slate-900/60 px-5 py-3 text-sm font-semibold text-slate-100 transition hover:border-slate-500 hover:bg-slate-900"
-          >
-            See how it works
-          </a>
-        </div>
-
-        <div className="flex flex-wrap gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5" />
-            <span>Plan ready in about 2–3 minutes</span>
+            <button
+              type="button"
+              onClick={() => scrollToSection('what-you-get')}
+              className="text-sm font-medium text-slate-200 underline-offset-4 hover:underline"
+            >
+              See a sample night
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-            <span>Secure PayPal checkout</span>
+
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-400 sm:justify-start">
+            <span>One-off £9 · Pay securely via PayPal</span>
+            <span className="hidden sm:inline">•</span>
+            <span>No subscriptions, no upsells</span>
+            <span className="hidden sm:inline">•</span>
+            <span>Tiny 2-minute ideas or big show-stoppers – you choose</span>
           </div>
         </div>
-      </div>
 
-      <div className="relative flex items-center justify-center">
-        {/* Glow behind elf */}
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_30%_20%,rgba(52,211,153,0.4),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.35),transparent_55%)] opacity-80" />
-        <div className="relative w-full max-w-xs rounded-3xl bg-gradient-to-b from-slate-900/80 via-slate-900 to-slate-900/90 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.9)]">
-          <div className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-950">
-            <Image
-              src="/elf-pose.png"
-              alt="Cheeky Elf on the Shelf posing on a stool"
-              width={800}
-              height={1200}
-              className="h-auto w-full object-cover"
-              priority
+        {/* Right: image */}
+        <div className="flex-1">
+          <div className="mx-auto max-w-sm rounded-3xl bg-slate-900/70 p-4 shadow-2xl shadow-slate-900/80 ring-1 ring-slate-800">
+            <img
+              src="/email.png"
+              alt="Phone showing tonight’s Elf email from Merry"
+              className="h-auto w-full rounded-2xl object-cover"
             />
           </div>
-          <div className="mt-4 space-y-1 text-xs text-slate-300">
-            <p className="font-medium text-emerald-300">
-              Meet Merry, your Elf planner.
-            </p>
-            <p>
-              Your Elf’s “face” on the site – friendly, cheeky, and here to
-              help you fake being the organised one.
-            </p>
-          </div>
+          <p className="mt-3 text-center text-xs text-slate-400">
+            A real example of the email Merry sends you each night.
+          </p>
         </div>
       </div>
     </section>
   );
 }
+
 
 function HowItWorksSection() {
   const steps = [
@@ -317,28 +292,28 @@ function ParentBubble({ children }: { children: React.ReactNode }) {
 function WhatYouGetSection() {
   const items = [
     {
-      title: '30 Elf setups',
-      body: 'Simple, low-prep ideas that mostly use things you already have at home – plus optional weekend “big” nights.',
+      title: 'Tonight’s plan in your inbox',
+      body: 'Every evening Merry emails you a clear, step-by-step Elf setup for tonight – plus what your child will discover in the morning. No more lying in bed thinking “oh god, I forgot the elf.”',
     },
     {
-      title: '30 Elf notes in Elf voice',
-      body: 'Short, playful messages written in a warm, gentle Elf tone. Copy-paste or tweak – no staring at a blank page.',
+      title: 'Up to 30 mornings of Elf magic',
+      body: 'From arrival to Christmas Eve, Merry keeps the story going with fresh, non-repeating ideas so your kids wake up to something new each morning.',
     },
     {
-      title: 'Personalised to your child',
-      body: 'We weave in their name, age range, worries and Elf vibe so it feels like their Elf, not a generic list.',
+      title: 'Truly personalised to your family',
+      body: 'Merry learns your child’s name, age, passions, worries, siblings, birthdays and Elf “vibe”, then weaves them into the notes and setups so it feels like their Elf – not a generic list from Pinterest.',
     },
     {
-      title: 'Instant access, any device',
-      body: 'View your plan online, email it to yourself, or download a clean, printer-friendly PDF.',
+      title: 'Fits your energy and mess tolerance',
+      body: 'Tell Merry if you want tiny 2-minute ideas, quick 5-minute setups, or big weekend show-stoppers. You’ll always get low-mess options using things you already have, plus an emergency “I’m exhausted” fallback idea.',
     },
     {
-      title: 'Built for knackered parents',
-      body: 'Ideas that take minutes to set up and don’t assume you have a Cricut, a glue gun, and unlimited glitter.',
+      title: 'Kind, gentle Elf behaviour',
+      body: 'Choose whether your Elf is a gentle guardian, classic Santa helper, or kindness-only Elf. No creepy “spying”, no guilt trips – just cozy, confidence-building moments for your child.',
     },
     {
       title: 'One simple price',
-      body: 'Full 30-night personalised plan for £9, paid securely via PayPal. No subscriptions, no upsells.',
+      body: 'Your whole month of personalised Elf plans and nightly reminder emails for £9, paid securely via PayPal. No subscriptions, no upsells, no faff.',
     },
   ];
 
@@ -492,11 +467,7 @@ function SiteFooter() {
     </footer>
   );
 }
-
-function MiniChatSection() {
-  // 👉 For now, use a generated sessionId and some defaults.
-  // Later you can replace these with real values from your hero form / context.
-
+export function MiniChatSection() {
   type ChatMessage = {
     id: string;
     role: 'user' | 'assistant';
@@ -511,11 +482,10 @@ function MiniChatSection() {
     window.localStorage.setItem('elf-mini-session-id', id);
     return id;
   });
-  
 
-  const childName = 'your child';        // TODO: wire up real child name
-  const ageRange = '4–6 years';          // TODO: real age range
-  const startDate = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const childName = 'your child';
+  const ageRange = '4–7 years';
+  const startDate = new Date().toISOString().slice(0, 10);
   const vibe: 'silly' | 'kind' | 'calm' = 'silly';
 
   const [messages, setMessages] = React.useState<ChatMessage[]>([
@@ -523,13 +493,19 @@ function MiniChatSection() {
       id: 'm-1',
       role: 'assistant',
       content:
-        "Ho ho hello! I’m Merry, your low-mess Elf helper. Tell me your kiddo’s name, age, and what December feels like for your family – I’ll sketch a tiny preview of your Elf month. 🎄",
+        "Ho ho hello! I’m Merry, your low-mess Elf helper. Tell me your kiddo’s name, age, and what December really feels like for your family – I’ll sketch a tiny preview of a few Elf mornings I’d plan just for you. 🎄",
     },
   ]);
+
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [hasPreview, setHasPreview] = React.useState(false); // ← triggers CTA
+  const [hasPreview, setHasPreview] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(false); // collapse long reply
+
+  const latestAssistant = messages
+    .filter((m) => m.role === 'assistant')
+    .at(-1);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -546,6 +522,7 @@ function MiniChatSection() {
     setInput('');
     setIsLoading(true);
     setError(null);
+    setIsExpanded(false);
 
     try {
       const res = await fetch('/api/elf-mini-chat', {
@@ -557,9 +534,7 @@ function MiniChatSection() {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error('Something went wrong. Please try again in a sec.');
-      }
+      if (!res.ok) throw new Error('Something went wrong. Please try again.');
 
       const data = await res.json();
 
@@ -570,7 +545,7 @@ function MiniChatSection() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      setHasPreview(true); // ← show CTA once we’ve given at least one preview
+      setHasPreview(true);
     } catch (err: any) {
       console.error(err);
       setError(
@@ -584,141 +559,169 @@ function MiniChatSection() {
 
   return (
     <section
-      id="ai-mini-chat"
-      className="grid gap-8 rounded-3xl border border-slate-800/80 bg-slate-900/70 p-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] md:p-10"
+      id="mini-chat"
+      className="mt-4 w-full bg-slate-950/90 px-4 py-20 sm:px-6 lg:px-8"
     >
-      {/* <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-slate-50 md:text-2xl">
+      <div className="mx-auto flex lg:max-w-6xl flex-col items-center text-center">
+        <span className="mb-2 inline-flex items-center rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+          Step 1 · Free preview
+        </span>
+
+        <h2 className="text-2xl font-semibold text-slate-50 sm:text-3xl lg:text-4xl">
           Try a free mini chat with Merry
         </h2>
-        <p className="text-sm text-slate-300">
-          Tell Merry about your child and your energy levels, and she’ll conjure
-          a short, personalised snippet of your 30-night plan. If you like the
-          feel of it, you can unlock the full plan for £9 with PayPal.
+
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+          Before you commit, see how Merry would actually talk about your kid and your
+          December. Type one or two sentences and she’ll sketch a tiny preview of a few Elf
+          mornings she’d plan just for you.
         </p>
-        <ul className="space-y-2 text-sm text-slate-300">
-          <li className="flex items-start gap-2">
-            <MessageCircle className="mt-0.5 h-4 w-4 text-emerald-300" />
-            <span>Get 2–3 sample Elf nights tailored to your kid.</span>
+
+        <ul className="mt-4 flex flex-col gap-2 text-xs text-slate-300 sm:flex-row sm:flex-wrap sm:justify-center">
+          <li className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-emerald-300" />
+            <span>Get ideas matched to your time and mess tolerance.</span>
           </li>
-          <li className="flex items-start gap-2">
-            <MessageCircle className="mt-0.5 h-4 w-4 text-emerald-300" />
-            <span>See the exact style of Elf notes you’ll receive.</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <MessageCircle className="mt-0.5 h-4 w-4 text-emerald-300" />
-            <span>Only pay if you want the complete 30-night plan.</span>
+          <li className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4 text-emerald-300" />
+            <span>Only pay if you want Merry planning every night for you.</span>
           </li>
         </ul>
 
-        <p className="mt-3 text-xs text-slate-400">
-          Tip: For the best preview, mention your child’s name, age range, and
-          anything they’re worried about (monsters, school, bedtime, etc.)
+        <p className="mt-2 text-[11px] text-slate-400">
+          One or two sentences is perfect – e.g.{' '}
+          <span className="italic text-slate-300">
+            “Lucy&apos;s 7, we’ve done Elf for years and this might be our last one. I&apos;m
+            out of ideas and want it to feel extra special without huge effort.”
+          </span>
         </p>
-      </div> */}
 
-      {/* Chat UI + CTA */}
-      <div className="relative">
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-emerald-400/40 via-sky-400/30 to-pink-400/40 opacity-70 blur-2xl" />
-        <div className="relative flex h-full flex-col rounded-3xl border border-slate-800 bg-slate-950/95 p-4 text-xs text-slate-100 shadow-[0_20px_70px_rgba(0,0,0,0.8)]">
-          <header className="mb-3 flex items-center justify-between rounded-2xl bg-slate-900/90 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-red-400 to-rose-500" />
-              <div>
-                <p className="text-xs font-semibold">Merry the Elf</p>
-                <p className="text-[10px] text-emerald-300">
-                  {isLoading ? 'Thinking up ideas…' : 'Ask me anything about your Elf!'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[9px] text-slate-400">
-              Free preview · No login
-            </span>
-          </header>
-
-          <div className="flex-1 space-y-2 overflow-y-auto rounded-2xl bg-slate-900/80 p-3">
-            {messages.map((msg) =>
-              msg.role === 'assistant' ? (
-                <div
-                  key={msg.id}
-                  className="max-w-[90%] rounded-2xl bg-slate-800/80 px-3 py-2 text-[11px] text-slate-50"
-                >
-                  {msg.content}
+        {/* Chat / preview card */}
+        <div className="relative mt-8 w-full max-w-2xl lg:max-w-6xl">
+          <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-emerald-400/40 via-sky-400/25 to-pink-400/35 opacity-90 blur-2xl" />
+          <div className="relative flex flex-col rounded-3xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.9)]">
+            <header className="mb-4 flex items-center justify-between rounded-2xl bg-slate-900/90 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 to-rose-500" />
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-slate-50">
+                    Merry the Elf
+                  </p>
+                  <p className="text-[11px] text-emerald-300">
+                    {isLoading
+                      ? 'Thinking up Elf ideas…'
+                      : 'Tell me about your kid and I’ll show you a preview.'}
+                  </p>
                 </div>
-              ) : (
-                <div key={msg.id} className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl bg-emerald-400/90 px-3 py-2 text-[11px] text-slate-950">
-                    {msg.content}
+              </div>
+              <span className="text-[10px] text-slate-400">
+                Free preview · No login
+              </span>
+            </header>
+
+            {/* Latest Merry reply */}
+            <div className="space-y-3">
+              {latestAssistant && (
+                <div className="rounded-2xl bg-slate-800/90 px-4 py-3 text-left text-sm leading-relaxed text-slate-50">
+                  <div
+                    className={isExpanded ? '' : 'max-h-40 overflow-hidden relative'}
+                  >
+                    <p className="whitespace-pre-line">{latestAssistant.content}</p>
+
+                    {!isExpanded && (
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-800/95 to-transparent" />
+                    )}
+                  </div>
+
+                  {latestAssistant.content.length > 280 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsExpanded((v) => !v)}
+                      className="mt-2 text-xs font-medium text-emerald-300 underline-offset-2 hover:underline"
+                    >
+                      {isExpanded ? 'Show less' : 'Show full preview'}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Last user message as a pill, if any */}
+              {messages.filter((m) => m.role === 'user').length > 0 && (
+                <div className="flex justify-end">
+                  <div className="max-w-[85%] rounded-2xl bg-emerald-400/90 px-3 py-2 text-right text-xs text-slate-950">
+                    {
+                      messages
+                        .filter((m) => m.role === 'user')
+                        .at(-1)?.content
+                    }
                   </div>
                 </div>
-              )
-            )}
-            {messages.length === 1 && (
-              <p className="text-[10px] italic text-slate-500">
-                Try: “She’s Sophia, 6, loves silly jokes but can get nervous at
-                bedtime. We’re exhausted and need 5-minute setups on school
-                nights.”
+              )}
+
+              {messages.length === 1 && (
+                <p className="text-xs italic text-slate-500">
+                  Try: “He&apos;s Max, 5, obsessed with Lego and sometimes scared of the dark.
+                  We need super quick, low-mess ideas on school nights.”
+                </p>
+              )}
+            </div>
+
+            {error && (
+              <p className="mt-2 text-xs text-rose-300">
+                {error}
               </p>
+            )}
+
+            {/* Input */}
+            <form onSubmit={handleSend} className="mt-4 flex gap-2">
+              <input
+                className="flex-1 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
+                placeholder="Type one quick line about your child and December…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-400 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
+              >
+                {isLoading ? 'Sending…' : 'Send'}
+                {!isLoading && <ArrowRight className="h-3 w-3" />}
+              </button>
+            </form>
+
+            {/* Upgrade CTA */}
+            {hasPreview && (
+              <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-3 text-left text-xs text-slate-100">
+                <p className="mb-1 font-semibold text-emerald-200">
+                  Like this vibe?
+                </p>
+                <p className="mb-2 text-slate-200">
+                  Let Merry plan the whole Elf season: she’ll email you tonight’s setup
+                  every evening, with a gentle Elf note for your child to find in the
+                  morning.
+                </p>
+                <ul className="mb-3 list-disc space-y-1 pl-4 text-slate-300">
+                  <li>Up to 30 low-prep Elf setups, matched to your energy.</li>
+                  <li>Personalised Elf notes using your child&apos;s name.</li>
+                  <li>One-off £9 · Pay securely via PayPal · No subscriptions.</li>
+                </ul>
+
+                <ElfCheckoutButton
+                  sessionId={sessionId}
+                  childName={childName}
+                  ageRange={ageRange}
+                  startDate={startDate}
+                  vibe={vibe}
+                  amount={9}
+                  currency="GBP"
+                  className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-emerald-400 px-3 py-2 text-[11px] font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
+                />
+              </div>
             )}
           </div>
-
-          {error && (
-            <p className="mt-2 text-[10px] text-rose-300">
-              {error}
-            </p>
-          )}
-
-          <form onSubmit={handleSend} className="mt-3 flex gap-2">
-            <input
-              className="flex-1 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
-              placeholder="Type your message to Merry…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-400 px-3 py-2 text-[11px] font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
-            >
-              {isLoading ? 'Sending…' : 'Send'}
-              {!isLoading && <ArrowRight className="h-3 w-3" />}
-            </button>
-          </form>
-
-          {/* CTA: appears after first real preview */}
-          {hasPreview && (
-            <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-3 text-[11px] text-slate-100">
-              <p className="mb-2 text-[11px] font-semibold text-emerald-200">
-                Ready for the full magic?
-              </p>
-              <p className="mb-2 text-[11px] text-slate-200">
-                Unlock your personalised 30-night Elf plan with all the simple
-                setups and Elf notes mapped out for you. View it on your phone
-                or download a printer-friendly PDF.
-              </p>
-              <ul className="mb-3 list-disc space-y-1 pl-4 text-[11px] text-slate-300">
-                <li>30 low-prep Elf setups that fit your energy levels</li>
-                <li>30 ready-to-use Elf notes in a warm, gentle voice</li>
-                <li>Instant access after a quick, secure PayPal checkout</li>
-              </ul>
-          
-          <ElfCheckoutButton
-                sessionId={sessionId}
-                childName={childName}
-                ageRange={ageRange}
-                startDate={startDate}
-                vibe={vibe}
-                amount={9}
-                currency="GBP"
-                className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-emerald-400 px-3 py-2 text-[11px] font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
-              />
-
-            </div>
-          )}
         </div>
       </div>
     </section>
   );
 }
-
-
