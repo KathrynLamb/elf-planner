@@ -5,10 +5,6 @@
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/test-elf-cron",
-      "schedule": "*/1 * * * *"
-    },
-    {
       "path": "/api/cron/send-daily-elf-emails-test",
       "schedule": "*/1 * * * *"
     }

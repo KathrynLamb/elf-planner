@@ -240,9 +240,15 @@ export async function patchElfSession(
     userEmail: existing?.userEmail ?? null,
     payerEmail: existing?.payerEmail ?? null,
 
+    // 🔴 these were missing before
+    reminderEmail: existing?.reminderEmail ?? null,
+    reminderTimezone: existing?.reminderTimezone ?? null,
+    reminderHourLocal: existing?.reminderHourLocal ?? null,
+
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
 
+    // let the incoming patch override any of the above
     ...patch,
   };
 
@@ -269,6 +275,12 @@ export async function patchElfSession(
     userEmail: merged.userEmail ?? '',
     payerEmail: merged.payerEmail ?? '',
 
+    // 🔴 actually write reminder fields into Redis
+    reminderEmail: merged.reminderEmail ?? '',
+    reminderTimezone: merged.reminderTimezone ?? '',
+    reminderHourLocal:
+      merged.reminderHourLocal != null ? String(merged.reminderHourLocal) : '',
+
     createdAt: String(merged.createdAt),
     updatedAt: String(merged.updatedAt),
   };
@@ -276,6 +288,7 @@ export async function patchElfSession(
   await redis.hset(sessionKey(sessionId), toStore);
   return merged;
 }
+
 
 /* ----------------- attachSessionToUser --------------------- */
 
