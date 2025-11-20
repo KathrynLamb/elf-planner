@@ -1,6 +1,7 @@
 // src/app/api/elf-session/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getElfSession, ElfSessionRecord } from '@/lib/elfStore';
+// import { getElfSession, ElfSessionRecord } from '@/lib/elfStore';
+import { ElfSessionRecord, getElfSession } from '@/lib/elfStore';
 import { redis } from '@/lib/redis';
 
 export const runtime = 'nodejs';

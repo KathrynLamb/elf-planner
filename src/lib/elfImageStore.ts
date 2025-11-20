@@ -1,6 +1,8 @@
 // src/lib/elfImageStore.ts
 import { randomUUID } from 'crypto';
+// import { redis } from '@/lib/elfStore';
 import { redis } from '@/lib/elfStore';
+
 
 const KEY_PREFIX = 'elf:image:';
 // 60 days in seconds

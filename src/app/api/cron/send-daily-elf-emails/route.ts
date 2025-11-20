@@ -1,7 +1,8 @@
 // src/app/api/cron/send-daily-elf-emails/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { redis, getElfSession, patchElfSession } from '@/lib/elfStore';
+// import { redis, getElfSession, patchElfSession } from '@/lib/elfStore';
+import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
 import { Resend } from 'resend';
 import { saveElfImageFromBase64 } from '@/lib/elfImageStore';
 import { buildElfEmailHtml } from '@/lib/elfEmail';

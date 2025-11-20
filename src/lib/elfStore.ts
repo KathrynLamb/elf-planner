@@ -13,29 +13,59 @@ export type HotlineTurn = {
   at: number;
 };
 
-/**
- * Matches the structured plan JSON we ask the model for
- * in /api/generate-plan
- */
+/* ------------ Rich plan types used across the app ---------- */
 
+export type NightType =
+  | 'hijinks'           // elf caught in silly scene
+  | 'quick-morning'     // 2–5 min morning interaction
+  | 'weekend-project'   // bigger setup / activity
+  | 'emotional-support' // feelings, worries, confidence
+  | 'event-or-tradition'; // birthdays, school events, cultural/religious days
 
+export type EffortLevel =
+  | 'micro-2-min'
+  | 'short-5-min'
+  | 'medium-10-min'
+  | 'bigger-20-plus';
 
+export type MessLevel = 'none' | 'low' | 'medium' | 'high';
 
 export type ElfPlanDay = {
   dayNumber: number;
-  date: string;         // "YYYY-MM-DD"
-  weekday: string;      // "Monday"
+  date: string;    // "YYYY-MM-DD"
+  weekday: string; // "Monday"
+
   title: string;
-  description: string;  // how to set up
+  description: string; // what the parent sets up at night
+
   noteFromElf?: string | null;
+
   imagePrompt: string;
-  imageUrl?: string | null; // <-- filled lazily when we generate the image
-};
-export type ElfPlanObject = {
-  planOverview: string;     // overall explanation of the month / arc
-  days: ElfPlanDay[];
+  imageUrl?: string | null; // filled lazily when we generate the image
+
+  // Rich metadata for emails / UI / filters
+  morningMoment?: string | null;
+  easyVariant?: string | null;
+  materials?: string[];
+
+  nightType?: NightType;
+  effortLevel?: EffortLevel;
+  messLevel?: MessLevel;
+
+  tags?: string[];
+  emailSubject?: string | null;
+  emailPreview?: string | null;
 };
 
+export type ElfPlanObject = {
+  /** A cosy overview paragraph or two explaining the month’s arc. */
+  planOverview: string;
+
+  /** Optional notes to the parent (global tips, safety notes, etc.). */
+  parentNotes?: string | null;
+
+  days: ElfPlanDay[];
+};
 
 /* -------------------- Inferred profile --------------------- */
 
@@ -71,7 +101,7 @@ export type ElfSessionRecord = {
 
   miniPreview: string | null;
 
-  introChatTranscript: any[]; // mini-chat history
+  introChatTranscript: any[];      // mini-chat history (JSON blobs)
   hotlineTranscript: HotlineTurn[];
 
   inferredProfile: InferredElfProfile | null;
@@ -83,15 +113,19 @@ export type ElfSessionRecord = {
   userEmail: string | null;
   payerEmail: string | null;
 
-    // NEW: reminder settings
-    reminderEmail?: string | null;
-    reminderTimezone?: string | null; // e.g. "Europe/London"
-    reminderHourLocal?: number | null; // 7 = 7am local
+  // reminder settings
+  reminderEmail?: string | null;
+  reminderTimezone?: string | null;   // e.g. "Europe/London"
+  reminderHourLocal?: number | null;  // 7 = 7am local
 
   createdAt: number;
   updatedAt: number;
 };
 
+/**
+ * Lightweight shape we return from /api/elf-session for the Success page UI.
+ * All fields are optional except the IDs + timestamps.
+ */
 export type StoredElfPlan = {
   sessionId: string;
 
@@ -104,16 +138,16 @@ export type StoredElfPlan = {
   payerEmail?: string | null;
 
   miniPreview?: string | null;
-  hotlineTranscript?: HotlineTurn[];
 
-  introChatTranscript?: string | null;
+  // These come back as whatever we stored; SuccessClient already handles "any".
+  introChatTranscript?: any;
+  hotlineTranscript?: any;
 
   plan?: ElfPlanObject | null;
   planGeneratedAt?: number | null;
 
   pdfUrl?: string | null;
 
-  // NEW
   reminderEmail?: string | null;
   reminderTimezone?: string | null;
   reminderHourLocal?: number | null;
@@ -122,13 +156,13 @@ export type StoredElfPlan = {
   updatedAt: number;
 };
 
-const REMINDER_SET_KEY = 'elf:reminder:sessions';
-
+export const REMINDER_SET_KEY = 'elf:reminder:sessions';
 
 /* ---------------------- Redis helpers ---------------------- */
 
 const sessionKey = (sessionId: string) => `elf:session:${sessionId}`;
-const userIndexKey = (email: string) => `elf:user:${email.toLowerCase()}:sessions`;
+const userIndexKey = (email: string) =>
+  `elf:user:${email.toLowerCase()}:sessions`;
 
 // 🔐 Safe JSON helpers (handle strings, objects, legacy junk)
 function safeParseArray(value: unknown): any[] {
@@ -151,7 +185,9 @@ function safeParseObject<T>(value: unknown): T | null {
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value);
-      return typeof parsed === 'object' && parsed !== null ? (parsed as T) : null;
+      return typeof parsed === 'object' && parsed !== null
+        ? (parsed as T)
+        : null;
     } catch {
       return null;
     }
@@ -240,7 +276,6 @@ export async function patchElfSession(
     userEmail: existing?.userEmail ?? null,
     payerEmail: existing?.payerEmail ?? null,
 
-    // 🔴 these were missing before
     reminderEmail: existing?.reminderEmail ?? null,
     reminderTimezone: existing?.reminderTimezone ?? null,
     reminderHourLocal: existing?.reminderHourLocal ?? null,
@@ -275,7 +310,6 @@ export async function patchElfSession(
     userEmail: merged.userEmail ?? '',
     payerEmail: merged.payerEmail ?? '',
 
-    // 🔴 actually write reminder fields into Redis
     reminderEmail: merged.reminderEmail ?? '',
     reminderTimezone: merged.reminderTimezone ?? '',
     reminderHourLocal:
@@ -288,7 +322,6 @@ export async function patchElfSession(
   await redis.hset(sessionKey(sessionId), toStore);
   return merged;
 }
-
 
 /* ----------------- attachSessionToUser --------------------- */
 

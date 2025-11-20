@@ -1,13 +1,14 @@
 // src/app/api/elf-mini-chat/route.ts
+import { ElfVibe, InferredElfProfile, getElfSession, patchElfSession } from '@/lib/elfStore';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-import {
-  ElfVibe,
-  InferredElfProfile,
-  getElfSession,
-  patchElfSession,
-} from '@/lib/elfStore';
+// import {
+//   ElfVibe,
+//   InferredElfProfile,
+//   getElfSession,
+//   patchElfSession,
+// } from '@/lib/elfStore';
 
 export const runtime = 'nodejs';
 

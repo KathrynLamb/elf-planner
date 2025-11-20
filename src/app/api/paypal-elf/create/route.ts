@@ -3,7 +3,8 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { redis } from '@/lib/redis';
-import { patchElfSession } from '@/lib/elfStore';
+// import { patchElfSession } from '@/lib/elfStore';
+import { ElfVibe, patchElfSession } from '@/lib/elfStore';
 
 const ENV =
   (process.env.PAYPAL_ENV ?? 'sandbox').toLowerCase() === 'live'
@@ -65,7 +66,7 @@ async function getAccessToken(): Promise<string> {
   return j.access_token as string;
 }
 
-type ElfVibe = 'silly' | 'kind' | 'calm';
+// type ElfVibe = 'silly' | 'kind' | 'calm';
 
 type CreateBody = {
   sessionId: string;

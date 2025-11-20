@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { Resend } from 'resend';
+// import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
 import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
 import { buildElfEmailHtml } from '@/lib/elfEmail';
 import { saveElfImageFromBase64 } from '@/lib/elfImageStore';

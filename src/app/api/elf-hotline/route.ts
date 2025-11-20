@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { redis } from '@/lib/redis';
+// import { patchElfSession } from '@/lib/elfStore';
 import { patchElfSession } from '@/lib/elfStore';
 
 export const runtime = 'nodejs';
