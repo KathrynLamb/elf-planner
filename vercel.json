@@ -1,9 +1,12 @@
 {
-    "crons": [
-      {
-        "path": "/api/cron/send-daily-elf-emails",
-        "schedule": "0 7 * * *"
-      }
-    ]
-  }
-  
+  "crons": [
+    {
+      "path": "/api/cron/send-daily-elf-emails",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/test-elf-cron",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}
