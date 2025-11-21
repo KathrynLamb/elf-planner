@@ -1,0 +1,19 @@
+
+// src/app/login/page.tsx
+import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/auth';
+import { LoginForm } from './LoginForm'; // or whatever your form component is
+
+export default async function LoginPage() {
+  const session = await getCurrentUser();
+
+  // If already signed in, don't show the login form again.
+  // Pick where you want logged-in users to land:
+  const loggedInDestination = '/'; // or '/plans' etc.
+
+  if (session) {
+    redirect(loggedInDestination);
+  }
+
+  return <LoginForm />;
+}

@@ -9,7 +9,8 @@ import {
   EffortLevel,
   MessLevel,
 } from '@/lib/elfStore';
-import { getCurrentSession } from '@/lib/auth';
+// import { getCurrentSession } from '@/lib/auth';
+import { getCurrentUser } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -53,9 +54,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const authSession = await getCurrentSession();
+    const authSession = await getCurrentUser();
     const userEmail =
-      authSession?.user?.email ?? storedSession.userEmail ?? null;
+      authSession?.email ?? storedSession.userEmail ?? null;
 
     const numDays = 30;
 

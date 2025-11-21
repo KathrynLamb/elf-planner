@@ -13,10 +13,12 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ElfCheckoutButton } from '@/components/ElfCheckoutButton';
+import {AuthButtons } from '@/components/AuthButtons';
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
+      <AuthButtons />
       {/* Subtle background glow */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.16),_transparent_55%)]" />
@@ -24,7 +26,19 @@ export default function HomePage() {
 
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-10 pt-10 md:pt-16">
         <HeroSection />
-        <MiniChatSection />
+
+        {/* Under the chat card, small account area */}
+<div className="mt-6 w-full max-w-2xl text-left text-[11px] text-slate-400">
+  <p className="mb-2 font-semibold text-slate-200">
+    Optional: save your Elf plans to an account
+  </p>
+  <p className="mb-2">
+    You don&apos;t need an account to buy a plan, but logging in with a magic
+    link lets you come back to all your Elf seasons in one place.
+  </p>
+
+</div>
+<MiniChatSection />
         <HowItWorksSection />
 
         {/* <AiPreviewSection /> */}

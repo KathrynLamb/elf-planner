@@ -1,45 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+// src/app/layout.tsx
+import type { Metadata } from 'next';
+import './globals.css';
 
-
-import { getCurrentSession } from '@/lib/auth';
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+import { getCurrentUser } from '@/lib/auth';
+import { AuthSessionProvider } from '@/components/AuthSessionProvider';
+import { AuthButtons } from '@/components/AuthButtons';
 
 export const metadata: Metadata = {
-  title: 'Elf on the Shelf Helper',
-  description:
-    '30 days of Elf-on-the-Shelf ideas in minutes – nightly setups and little notes from your Elf.',
-  icons: {
-    icon: '/elf.png',       // our elf PNG in /public
-    shortcut: '/elf.png',   
-  },
+  title: 'Elf Planner',
+  description: 'Wake up to Elf magic, not parent panic.',
 };
-
 
 export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const session = await getCurrentSession();
-  console.log("session", session)
+}) {
+  // purely for debugging; safe if it returns null
+  const user = await getCurrentUser();
+  console.log('session in RootLayout', user);
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className="min-h-screen bg-slate-950 text-slate-50">
+        {/* Client-side SessionProvider wrapper */}
+        <AuthSessionProvider>
+          {/* If you want auth buttons in a global header, you can render them here */}
+          {/* <header className="p-4 border-b border-slate-800 flex justify-end">
+            <AuthButtons />
+          </header> */}
+          {children}
+        </AuthSessionProvider>
       </body>
     </html>
   );

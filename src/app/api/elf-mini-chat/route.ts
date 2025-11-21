@@ -3,13 +3,6 @@ import { ElfVibe, InferredElfProfile, getElfSession, patchElfSession } from '@/l
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// import {
-//   ElfVibe,
-//   InferredElfProfile,
-//   getElfSession,
-//   patchElfSession,
-// } from '@/lib/elfStore';
-
 export const runtime = 'nodejs';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
