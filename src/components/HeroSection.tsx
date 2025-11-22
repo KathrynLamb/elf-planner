@@ -2,7 +2,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { signIn } from 'next-auth/react';
+// import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 type Vibe = 'cheeky' | 'calm' | 'kind' | 'mixed';
@@ -25,36 +25,36 @@ export default function HeroSection() {
   const [teaserLoading, setTeaserLoading] = useState(false);
   const [teaserError, setTeaserError] = useState<string | null>(null);
 
-  async function handleEmailSignIn(e: FormEvent) {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthMessage(null);
+  // async function handleEmailSignIn(e: FormEvent) {
+  //   e.preventDefault();
+  //   setAuthError(null);
+  //   setAuthMessage(null);
 
-    if (!email) {
-      setAuthError('Pop your email in first.');
-      return;
-    }
+  //   if (!email) {
+  //     setAuthError('Pop your email in first.');
+  //     return;
+  //   }
 
-    setAuthSubmitting(true);
-    try {
-      await signIn('email', {
-        email,
-        redirect: false,
-        callbackUrl: '/intro', // after magic link, start your intro flow
-      });
+  //   setAuthSubmitting(true);
+  //   try {
+  //     await signIn('email', {
+  //       email,
+  //       redirect: false,
+  //       callbackUrl: '/intro', // after magic link, start your intro flow
+  //     });
 
-      setAuthMessage(
-        'Magic link sent. Check your email on this device to finish signing in.'
-      );
-    } catch (err: any) {
-      console.error(err);
-      setAuthError(
-        'Something went wrong sending your magic link. Please try again in a moment.'
-      );
-    } finally {
-      setAuthSubmitting(false);
-    }
-  }
+  //     setAuthMessage(
+  //       'Magic link sent. Check your email on this device to finish signing in.'
+  //     );
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     setAuthError(
+  //       'Something went wrong sending your magic link. Please try again in a moment.'
+  //     );
+  //   } finally {
+  //     setAuthSubmitting(false);
+  //   }
+  // }
 
   function handleGuest() {
     router.push('/intro');
@@ -254,7 +254,7 @@ export default function HeroSection() {
               December&apos;s Elf-on-the-Shelf ideas.
             </p>
 
-            <form onSubmit={handleEmailSignIn} className="space-y-3">
+            {/* <form onSubmit={handleEmailSignIn} className="space-y-3">
               <div className="space-y-1">
                 <label
                   htmlFor="hero-email"
@@ -280,7 +280,7 @@ export default function HeroSection() {
                   ? 'Sending magic sign-in link…'
                   : 'Send me a magic sign-in link'}
               </button>
-            </form>
+            </form> */}
 
             {authMessage && (
               <p className="text-[11px] text-emerald-300">{authMessage}</p>

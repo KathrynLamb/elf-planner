@@ -13,32 +13,38 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ElfCheckoutButton } from '@/components/ElfCheckoutButton';
-import {AuthButtons } from '@/components/AuthButtons';
+
+import { GeneratePlanButton } from '@/components/GeneratePlanButton';
 
 export default function HomePage() {
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('clearMiniSession') === '1') {
+      localStorage.removeItem('elf-mini-session-id');
+      params.delete('clearMiniSession');
+      const newUrl = window.location.pathname + '?' + params.toString();
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
+  
   return (
+    // <main className="min-h-screen bg-slate-950 text-slate-50">
+    //   {/* Subtle background glow */}
+    //   <div className="pointer-events-none fixed inset-0 -z-10">
+    //     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.16),_transparent_55%)]" />
+    //   </div>
+
     <main className="min-h-screen bg-slate-950 text-slate-50">
-      <AuthButtons />
-      {/* Subtle background glow */}
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.16),_transparent_55%)]" />
-      </div>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-10 pt-10 md:pt-16">
+    {/* Subtle background glow */}
+    <div className="pointer-events-none fixed inset-0 -z-10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(236,72,153,0.16),_transparent_55%)]" />
+    </div>
+
+      {/* <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-10 pt-10 md:pt-16"> */}
         <HeroSection />
-
-        {/* Under the chat card, small account area */}
-<div className="mt-6 w-full max-w-2xl text-left text-[11px] text-slate-400">
-  <p className="mb-2 font-semibold text-slate-200">
-    Optional: save your Elf plans to an account
-  </p>
-  <p className="mb-2">
-    You don&apos;t need an account to buy a plan, but logging in with a magic
-    link lets you come back to all your Elf seasons in one place.
-  </p>
-
-</div>
-<MiniChatSection />
+        <MiniChatSection />
         <HowItWorksSection />
 
         {/* <AiPreviewSection /> */}
@@ -46,13 +52,84 @@ export default function HomePage() {
         <SocialProofSection />
         <FaqSection />
         <SiteFooter />
-      </div>
+      {/* </div> */}
     </main>
   );
 }
 
+// export function HeroSection() {
+//   // simple helper to smooth-scroll to a section by id
+//   function scrollToSection(id: string) {
+//     const el = document.getElementById(id);
+//     if (!el) return;
+//     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+//   }
+  
+//     return (
+//       <section
+//         className="relative bg-cover bg-center bg-no-repeat min-h-screen"
+//         style={{ backgroundImage: "url('/bg1.png')" }}
+//       >
+//         {/* Dark festive overlay so text stays readable */}
+//         {/* <div className="absolute inset-0 bg-[rgba(0,0,0,0.55)] backdrop-blur-[1px]" /> */}
+
+//         <AuthButtons />
+  
+//         <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
+//           {/* Left: copy */}
+//           <div className="flex-1 text-center lg:text-left">
+//             <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300 drop-shadow">
+//               Elf-on-the-Shelf, without the mental load
+//             </p>
+  
+//             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white drop-shadow-lg sm:text-4xl md:text-5xl">
+//               Wake up to Elf magic,
+//               <span className="block text-[#f4d27a] drop-shadow-[0_0_8px_rgba(0,0,0,0.4)]">
+//                 not parent panic.
+//               </span>
+//             </h1>
+  
+//             <p className="mt-4 max-w-xl text-base text-slate-200 sm:text-lg drop-shadow">
+//               Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf
+//               setup to do after bedtime – plus a tiny note for your child to discover in
+//               the morning. Built for knackered parents, kind to sensitive kids, and
+//               tailored to your time, mess tolerance, and family traditions.
+//             </p>
+  
+//             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start sm:gap-4">
+//               <button
+//                 type="button"
+//                 onClick={() => scrollToSection('mini-chat')}
+//                 className="inline-flex items-center justify-center rounded-full bg-[#d43c2f] hover:bg-[#bf3328] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d27a]"
+//               >
+//                 Meet Merry &amp; get your plan
+//               </button>
+  
+//               <button
+//                 type="button"
+//                 onClick={() => scrollToSection('what-you-get')}
+//                 className="text-sm font-medium text-slate-200 underline-offset-4 hover:underline"
+//               >
+//                 See a sample night
+//               </button>
+//             </div>
+  
+//             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-300 sm:justify-start drop-shadow">
+//               <span>One-off £9 · Pay securely via PayPal</span>
+//               <span className="hidden sm:inline">•</span>
+//               <span>No subscriptions, no upsells</span>
+//               <span className="hidden sm:inline">•</span>
+//               <span>Tiny 2-minute ideas or big show-stoppers – you choose</span>
+//             </div>
+//           </div>
+  
+
+    
+//         </div>
+//       </section>
+//     );
+//   }
 export function HeroSection() {
-  // simple helper to smooth-scroll to a section by id
   function scrollToSection(id: string) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -60,47 +137,57 @@ export function HeroSection() {
   }
 
   return (
-    <section className="bg-slate-950">
-      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
-        {/* Left: copy */}
+    <section
+      className="relative overflow-hidden"
+      style={{
+        backgroundImage: "url('/bg_blend.png')",
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right center',
+        backgroundColor: '#020617', // fallback midnight navy
+      }}
+    >
+      {/* Fade to midnight sky on the left for text */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#020617] via-[#020617] to-transparent" />
+
+      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
+        {/* LEFT: copy */}
         <div className="flex-1 text-center lg:text-left">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300/80">
             Elf-on-the-Shelf, without the mental load
           </p>
 
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
             Wake up to Elf magic,
-            <span className="block text-emerald-300">
-              not parent panic.
-            </span>
+            <span className="block text-emerald-300">not parent panic.</span>
           </h1>
 
-          <p className="mt-4 max-w-xl text-base text-slate-300 sm:text-lg">
-            Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf setup to do
-            after bedtime – plus a tiny note for your child to discover in the morning.
-            Built for knackered parents, kind to sensitive kids, and tailored to your time,
-            mess tolerance, and family traditions.
+          <p className="mt-4 max-w-xl text-base text-slate-200/95 sm:text-lg">
+            Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf
+            setup to do after bedtime – plus a tiny note for your child to discover
+            in the morning. Built for knackered parents, kind to sensitive kids, and
+            tailored to your time, mess tolerance, and family traditions.
           </p>
 
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start sm:gap-4">
             <button
               type="button"
               onClick={() => scrollToSection('mini-chat')}
-              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-7 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+              className="inline-flex items-center justify-center rounded-full bg-[#d43c2f] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#bf3328]"
             >
-              Meet Merry &amp; get your plan
+              Meet Merry and get your plan
             </button>
 
             <button
               type="button"
               onClick={() => scrollToSection('what-you-get')}
-              className="text-sm font-medium text-slate-200 underline-offset-4 hover:underline"
+              className="text-sm font-medium text-slate-100 underline-offset-4 hover:underline"
             >
               See a sample night
             </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-400 sm:justify-start">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-200/80 sm:justify-start">
             <span>One-off £9 · Pay securely via PayPal</span>
             <span className="hidden sm:inline">•</span>
             <span>No subscriptions, no upsells</span>
@@ -109,24 +196,33 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Right: image */}
-        <div className="flex-1">
-          <div className="mx-auto max-w-sm rounded-3xl bg-slate-900/70 p-4 shadow-2xl shadow-slate-900/80 ring-1 ring-slate-800">
-            <img
-              src="/email.png"
-              alt="Phone showing tonight’s Elf email from Merry"
-              className="h-auto w-full rounded-2xl object-cover"
-            />
+        {/* RIGHT: video */}
+        <div className="flex-1 flex justify-center">
+          <div className="relative w-full max-w-sm">
+            {/* subtle glow around the video card */}
+            <div className="pointer-events-none absolute -inset-[3px] rounded-[32px] bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.55),transparent_55%),radial-gradient(circle_at_bottom,rgba(52,211,153,0.5),transparent_55%)] opacity-80" />
+
+            <div className="relative rounded-[30px] overflow-hidden bg-[#020617]/70 backdrop-blur-[1px] shadow-[0_25px_80px_rgba(0,0,0,0.9)]">
+              <video
+                className="block h-full w-full object-cover"
+                src="/elf_vid.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                // poster="/elf-hero-poster.jpg"
+              />
+            </div>
           </div>
-          <p className="mt-3 text-center text-xs text-slate-400">
-            A real example of the email Merry sends you each night.
-          </p>
         </div>
       </div>
+
+      <p className="relative z-10 mt-2 pb-6 text-center text-[11px] text-slate-300/80">
+        A real example of the Merry-style Elf you’ll meet in your plan.
+      </p>
     </section>
   );
 }
-
 
 function HowItWorksSection() {
   const steps = [
@@ -507,7 +603,7 @@ export function MiniChatSection() {
       id: 'm-1',
       role: 'assistant',
       content:
-        "Ho ho hello! I’m Merry, your low-mess Elf helper. Tell me your kiddo’s name, age, and what December really feels like for your family – I’ll sketch a tiny preview of a few Elf mornings I’d plan just for you. 🎄",
+        "Ho ho hello! I’m Merry, your December Elf helper. 🎄",
     },
   ]);
 
@@ -515,11 +611,9 @@ export function MiniChatSection() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [hasPreview, setHasPreview] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false); // collapse long reply
+  const [isExpanded, setIsExpanded] = React.useState(false);
 
-  const latestAssistant = messages
-    .filter((m) => m.role === 'assistant')
-    .at(-1);
+  const latestAssistant = messages.filter((m) => m.role === 'assistant').at(-1);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -549,7 +643,6 @@ export function MiniChatSection() {
       });
 
       if (!res.ok) throw new Error('Something went wrong. Please try again.');
-
       const data = await res.json();
 
       const assistantMessage: ChatMessage = {
@@ -561,7 +654,6 @@ export function MiniChatSection() {
       setMessages((prev) => [...prev, assistantMessage]);
       setHasPreview(true);
     } catch (err: any) {
-      console.error(err);
       setError(
         err?.message ||
           'Oops, the North Pole wifi dropped. Please try again in a moment.',
@@ -572,170 +664,111 @@ export function MiniChatSection() {
   }
 
   return (
-    <section
-      id="mini-chat"
-      className="mt-4 w-full bg-slate-950/90 px-4 py-20 sm:px-6 lg:px-8"
-    >
-      <div className="mx-auto flex lg:max-w-6xl flex-col items-center text-center">
-        <span className="mb-2 inline-flex items-center rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Step 1 · Free preview
-        </span>
+<section
+  id="mini-chat"
+  className="
+    relative min-h-screen w-full flex items-center justify-center
+    px-4 sm:px-6 lg:px-8"
+    style={{ backgroundImage: "url('/bg_blend.png')" }}
+    
+>
+  {/* Soft festive edges */}
+  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,226,150,0.12),transparent_70%)]" />
+  <div className="pointer-events-none absolute inset-0 bg-[url('/bg_blend.png')] bg-cover bg-center opacity-[0.18]" />
 
-        <h2 className="text-2xl font-semibold text-slate-50 sm:text-3xl lg:text-4xl">
-          Try a free mini chat with Merry
-        </h2>
+  <div className="relative w-full max-w-3xl mx-auto text-center py-16">
+    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
+      Try a free mini chat with Merry
+    </h2>
 
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
-          Before you commit, see how Merry would actually talk about your kid and your
-          December. Type one or two sentences and she’ll sketch a tiny preview of a few Elf
-          mornings she’d plan just for you.
-        </p>
+    <p className="mt-4 max-w-xl mx-auto text-slate-200 leading-relaxed">
+      Type one or two sentences about your kid and Merry will sketch a tiny preview of a few Elf mornings she’d plan just for you.
+    </p>
 
-        <ul className="mt-4 flex flex-col gap-2 text-xs text-slate-300 sm:flex-row sm:flex-wrap sm:justify-center">
-          <li className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-emerald-300" />
-            <span>Get ideas matched to your time and mess tolerance.</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-emerald-300" />
-            <span>Only pay if you want Merry planning every night for you.</span>
-          </li>
-        </ul>
+    {/* CHAT CARD */}
+    <div className="relative mt-10 w-full max-w-2xl mx-auto">
+      <div className="absolute -inset-4 rounded-[30px] bg-red-500/20 blur-2xl" />
 
-        <p className="mt-2 text-[11px] text-slate-400">
-          One or two sentences is perfect – e.g.{' '}
-          <span className="italic text-slate-300">
-            “Lucy&apos;s 7, we’ve done Elf for years and this might be our last one. I&apos;m
-            out of ideas and want it to feel extra special without huge effort.”
-          </span>
-        </p>
+      <div className="relative rounded-[28px] bg-black/20 backdrop-blur-xl border border-white/10 px-6 py-8 shadow-[0_25px_80px_rgba(0,0,0,0.7)]">
 
-        {/* Chat / preview card */}
-        <div className="relative mt-8 w-full max-w-2xl lg:max-w-6xl">
-          <div className="absolute -inset-1 rounded-3xl bg-gradient-to-tr from-emerald-400/40 via-sky-400/25 to-pink-400/35 opacity-90 blur-2xl" />
-          <div className="relative flex flex-col rounded-3xl border border-slate-800 bg-slate-950 p-5 text-sm text-slate-100 shadow-[0_30px_90px_rgba(0,0,0,0.9)]">
-            <header className="mb-4 flex items-center justify-between rounded-2xl bg-slate-900/90 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 to-rose-500" />
-                <div className="text-left">
-                  <p className="text-xs font-semibold text-slate-50">
-                    Merry the Elf
-                  </p>
-                  <p className="text-[11px] text-emerald-300">
-                    {isLoading
-                      ? 'Thinking up Elf ideas…'
-                      : 'Tell me about your kid and I’ll show you a preview.'}
-                  </p>
-                </div>
-              </div>
-              <span className="text-[10px] text-slate-400">
-                Free preview · No login
-              </span>
-            </header>
+        {/* Assistant bubble */}
+        {latestAssistant && (
+          <div className="rounded-2xl bg-white/10 px-5 py-4 text-left text-[15px] leading-relaxed text-slate-100 border border-white/10 shadow-inner">
+            <p className={isExpanded ? "" : "max-h-40 overflow-hidden relative"}>
+              {latestAssistant.content}
+            </p>
 
-            {/* Latest Merry reply */}
-            <div className="space-y-3">
-              {latestAssistant && (
-                <div className="rounded-2xl bg-slate-800/90 px-4 py-3 text-left text-sm leading-relaxed text-slate-50">
-                  <div
-                    className={isExpanded ? '' : 'max-h-40 overflow-hidden relative'}
-                  >
-                    <p className="whitespace-pre-line">{latestAssistant.content}</p>
-
-                    {!isExpanded && (
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-800/95 to-transparent" />
-                    )}
-                  </div>
-
-                  {latestAssistant.content.length > 280 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsExpanded((v) => !v)}
-                      className="mt-2 text-xs font-medium text-emerald-300 underline-offset-2 hover:underline"
-                    >
-                      {isExpanded ? 'Show less' : 'Show full preview'}
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Last user message as a pill, if any */}
-              {messages.filter((m) => m.role === 'user').length > 0 && (
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl bg-emerald-400/90 px-3 py-2 text-right text-xs text-slate-950">
-                    {
-                      messages
-                        .filter((m) => m.role === 'user')
-                        .at(-1)?.content
-                    }
-                  </div>
-                </div>
-              )}
-
-              {messages.length === 1 && (
-                <p className="text-xs italic text-slate-500">
-                  Try: “He&apos;s Max, 5, obsessed with Lego and sometimes scared of the dark.
-                  We need super quick, low-mess ideas on school nights.”
-                </p>
-              )}
-            </div>
-
-            {error && (
-              <p className="mt-2 text-xs text-rose-300">
-                {error}
-              </p>
+            {!isExpanded && latestAssistant.content.length > 260 && (
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
             )}
 
-            {/* Input */}
-            <form onSubmit={handleSend} className="mt-4 flex gap-2">
-              <input
-                className="flex-1 rounded-full border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
-                placeholder="Type one quick line about your child and December…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
+            {latestAssistant.content.length > 260 && (
               <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="inline-flex items-center justify-center gap-1 rounded-full bg-emerald-400 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
+                type="button"
+                onClick={() => setIsExpanded((v) => !v)}
+                className="mt-2 text-xs font-medium text-yellow-300 hover:underline"
               >
-                {isLoading ? 'Sending…' : 'Send'}
-                {!isLoading && <ArrowRight className="h-3 w-3" />}
+                {isExpanded ? "Show less" : "Show full preview"}
               </button>
-            </form>
-
-            {/* Upgrade CTA */}
-            {hasPreview && (
-              <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-3 text-left text-xs text-slate-100">
-                <p className="mb-1 font-semibold text-emerald-200">
-                  Like this vibe?
-                </p>
-                <p className="mb-2 text-slate-200">
-                  Let Merry plan the whole Elf season: she’ll email you tonight’s setup
-                  every evening, with a gentle Elf note for your child to find in the
-                  morning.
-                </p>
-                <ul className="mb-3 list-disc space-y-1 pl-4 text-slate-300">
-                  <li>Up to 30 low-prep Elf setups, matched to your energy.</li>
-                  <li>Personalised Elf notes using your child&apos;s name.</li>
-                  <li>One-off £9 · Pay securely via PayPal · No subscriptions.</li>
-                </ul>
-
-                <ElfCheckoutButton
-                  sessionId={sessionId}
-                  childName={childName}
-                  ageRange={ageRange}
-                  startDate={startDate}
-                  vibe={vibe}
-                  amount={9}
-                  currency="GBP"
-                  className="inline-flex w-full items-center justify-center gap-1 rounded-full bg-emerald-400 px-3 py-2 text-[11px] font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none"
-                />
-              </div>
             )}
           </div>
-        </div>
+        )}
+
+        {/* User bubble */}
+        {messages.filter((m) => m.role === "user").length > 0 && (
+          <div className="mt-4 flex justify-end">
+            <div className="rounded-2xl bg-yellow-300 px-5 py-3 text-right text-[14px] text-slate-900 shadow-lg shadow-yellow-300/40">
+              {messages.filter((m) => m.role === "user").at(-1)?.content}
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        <form onSubmit={handleSend} className="mt-6 flex gap-3">
+          <input
+            className="
+              flex-1 rounded-full 
+              bg-white/10 border border-white/20 
+              px-4 py-3 
+              text-sm text-white placeholder:text-slate-300
+              focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300 focus:outline-none
+            "
+            placeholder="Tell Merry about your kid and December…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="
+              rounded-full bg-green-300 px-6 py-3
+              text-sm font-semibold text-white shadow-lg shadow-yellow-300/40
+              hover:bg-green-200 transition
+              disabled:bg-green-600
+
+            "
+          >
+            {isLoading ? "Sending…" : "Send"}
+          </button>
+        </form>
+
+        {/* Upsell */}
+        {hasPreview && (
+          <div className="mt-6 rounded-2xl border border-yellow-300/30 bg-yellow-300/10 p-4 text-left text-sm text-slate-100 backdrop-blur-md">
+            <p className="mb-1 font-semibold text-yellow-200">Like this vibe?</p>
+            <p className="mb-2 text-slate-200">
+              Let Merry plan the whole Elf season for you.
+            </p>
+
+            <GeneratePlanButton
+                sessionId={sessionId} 
+            />
+          </div>
+        )}
       </div>
-    </section>
+    </div>
+  </div>
+</section>
+
   );
 }

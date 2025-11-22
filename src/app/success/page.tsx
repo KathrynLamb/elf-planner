@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
 import SuccessClient from './SuccessClient';
-// import { getCurrentSession } from '@/lib/auth';
-import { getCurrentUser } from '@/lib/auth';
+import { currentUser } from '@/lib/currentUser';
 
 export default async function SuccessPage() {
-  const session = await getCurrentUser();
+  const session = await currentUser();
   console.log("session", session)
   // const email = session?.user?.email;
   // console.log("email ==> ", email)

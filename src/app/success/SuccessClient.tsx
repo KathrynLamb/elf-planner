@@ -72,130 +72,152 @@ export default function SuccessClient() {
   const hasPlanObject = Boolean(plan && typeof plan !== 'string');
 
   // -------- Load session from Redis via API --------
-  useEffect(() => {
-    if (!sessionId) return;
-  
-    let cancelled = false;
-  
-    async function loadSession() {
-      setSessionLoading(true);
-      setError(null);
-  
-      try {
-        const res = await fetch(`/api/elf-session?sessionId=${sessionId}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (!cancelled) {
-            throw new Error(
-              data?.message || 'Could not load your Elf session details.',
-            );
-          }
-        }
-  
-        const data = await res.json();
-if (cancelled) return;
+// Clear any stale mini-session ID to avoid pulling old data
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('elf-mini-session-id');
+  }
+}, []);
 
-const fullSession = data.session as StoredElfPlan;
-console.log('[Success page] full Elf session from API:', fullSession);
+  // -------- Load session from Redis via API --------
+useEffect(() => {
+  if (!sessionId) return;
 
-// existing plan + essentials
-setPlan((fullSession.plan ?? null) as PlanState);
+  let cancelled = false;
 
-setElfSession({
-  sessionId: fullSession.sessionId,
-  childName: fullSession.childName ?? 'your child',
-  ageRange: fullSession.ageRange ?? '',
-  startDate: fullSession.startDate ?? '',
-  vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
-});
+  async function loadSession() {
+    setSessionLoading(true);
+    setError(null);
 
-// 🔥 hydrate chat from stored transcripts
-const hydrated: ChatMessage[] = [];
-
-// 1) mini intro chat
-if (Array.isArray(fullSession.introChatTranscript)) {
-  fullSession.introChatTranscript.forEach((turn, idx) => {
-    hydrated.push({
-      id: `intro-${idx}`,
-      from: turn.role === 'assistant' ? 'elf' : 'parent',
-      text: turn.content,
-    });
-  });
-}
-
-// 2) miniPreview
-if (fullSession.miniPreview) {
-  hydrated.push({
-    id: 'mini-preview',
-    from: 'elf',
-    text: fullSession.miniPreview,
-  });
-}
-
-// 3) hotline transcript
-// 3) hotline transcript (support both legacy + new shapes)
-if (Array.isArray(fullSession.hotlineTranscript)) {
-  (fullSession.hotlineTranscript as any[]).forEach((turn, idx) => {
-    // LEGACY SHAPE: directly stored ChatTurn { role, content }
-    if (turn && typeof turn === 'object' && 'role' in turn && 'content' in turn) {
-      hydrated.push({
-        id: `hotline-${idx}`,
-        from: turn.role === 'assistant' ? 'elf' : 'parent',
-        text: turn.content as string,
-      });
-      return;
-    }
-
-    // NEW SHAPE: { at, messages: ChatTurn[], reply: string }
-    if (turn && Array.isArray((turn as any).messages)) {
-      (turn as any).messages.forEach((m: any, mIdx: number) => {
-        if (!m || typeof m.content !== 'string') return;
-
-        hydrated.push({
-          id: `hotline-${idx}-m-${mIdx}`,
-          from: m.role === 'assistant' ? 'elf' : 'parent',
-          text: m.content,
-        });
-      });
-
-      if (typeof (turn as any).reply === 'string' && (turn as any).reply.trim()) {
-        hydrated.push({
-          id: `hotline-${idx}-reply`,
-          from: 'elf',
-          text: (turn as any).reply,
-        });
-      }
-    }
-  });
-}
-
-
-if (hydrated.length > 0) {
-  setChatMessages(hydrated);
-}
-
-// ✅ mark hydration complete
-setHydratedFromSession(true);
-
-      } catch (err: any) {
-        console.error(err);
+    try {
+      const res = await fetch(`/api/elf-session?sessionId=${sessionId}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         if (!cancelled) {
-          setError(
-            err.message ||
-              "I couldn't find your Elf details. If this keeps happening, go back to the homepage and refill the form.",
+          throw new Error(
+            data?.message || 'Could not load your Elf session details.',
           );
         }
-      } finally {
-        if (!cancelled) setSessionLoading(false);
       }
+
+      const data = await res.json();
+      if (cancelled) return;
+
+      const fullSession = data.session as StoredElfPlan;
+      console.log('[Success page] full Elf session from API:', fullSession);
+
+      // 🔥 CRITICAL FIX #1 — ensure the session belongs to THIS user
+      const authRes = await fetch('/api/auth/me'); // create this endpoint if not present
+      const auth = authRes.ok ? await authRes.json() : { email: null };
+
+      if (
+        fullSession.userEmail &&
+        auth.email &&
+        fullSession.userEmail !== auth.email
+      ) {
+        console.warn(
+          '[Success page] Session does not belong to current user. Ignoring stale/hijacked session.'
+        );
+
+        // Reset to a clean state
+        setElfSession(null);
+        setPlan(null);
+        setHydratedFromSession(true);
+        return;
+      }
+
+      // 🔥 CRITICAL FIX #2 — clear stale local session ID
+      localStorage.removeItem('elf-mini-session-id');
+
+      // Set essential top-level fields
+      setElfSession({
+        sessionId: fullSession.sessionId,
+        childName: fullSession.childName ?? 'your child',
+        ageRange: fullSession.ageRange ?? '',
+        startDate: fullSession.startDate ?? '',
+        vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
+      });
+
+      // Only hydrate plan if it actually belongs to the user
+      if (fullSession.plan) {
+        setPlan(fullSession.plan as PlanState);
+      }
+
+      // 🔥 CRITICAL FIX #3 — hydrate chat ONLY if the full session is legitimate
+      const hydrated: ChatMessage[] = [];
+
+      if (Array.isArray(fullSession.introChatTranscript)) {
+        fullSession.introChatTranscript.forEach((turn, idx) => {
+          hydrated.push({
+            id: `intro-${idx}`,
+            from: turn.role === 'assistant' ? 'elf' : 'parent',
+            text: turn.content,
+          });
+        });
+      }
+
+      if (fullSession.miniPreview) {
+        hydrated.push({
+          id: 'mini-preview',
+          from: 'elf',
+          text: fullSession.miniPreview,
+        });
+      }
+
+      if (Array.isArray(fullSession.hotlineTranscript)) {
+        fullSession.hotlineTranscript.forEach((turn, idx) => {
+          if ('role' in turn && 'content' in turn) {
+            hydrated.push({
+              id: `hotline-${idx}`,
+              from: turn.role === 'assistant' ? 'elf' : 'parent',
+              text: turn.content,
+            });
+          } else if (Array.isArray(turn.messages)) {
+            turn.messages.forEach(
+              (m: { role: string; content: string }, mIdx: number) => {
+                hydrated.push({
+                  id: `hotline-${idx}-${mIdx}`,
+                  from: m.role === 'assistant' ? 'elf' : 'parent',
+                  text: m.content,
+                });
+              }
+            );
+      
+            if (typeof turn.reply === 'string' && turn.reply.trim()) {
+              hydrated.push({
+                id: `hotline-${idx}-reply`,
+                from: 'elf',
+                text: turn.reply,
+              });
+            }
+          }
+        });
+      }
+      
+      if (hydrated.length > 0) setChatMessages(hydrated);
+
+      setHydratedFromSession(true); // done!
+
+    } catch (err: any) {
+      console.error(err);
+      if (!cancelled) {
+        setError(
+          err.message ||
+            "I couldn't load your Elf session. If this keeps happening, please start again from the homepage."
+        );
+      }
+      setHydratedFromSession(true);
+    } finally {
+      if (!cancelled) setSessionLoading(false);
     }
-  
-    loadSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId]);
-  
+  }
+
+  loadSession();
+  return () => {
+    cancelled = true;
+  };
+}, [sessionId]);
+
   // -------- Voice hotline helpers (not wired to UI yet, but ready) --------
   async function startRecording() {
     try {

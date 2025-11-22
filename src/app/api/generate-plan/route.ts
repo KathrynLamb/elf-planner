@@ -10,7 +10,8 @@ import {
   MessLevel,
 } from '@/lib/elfStore';
 // import { getCurrentSession } from '@/lib/auth';
-import { getCurrentUser } from '@/lib/auth';
+import { currentUser } from '@/lib/currentUser';
+
 
 export const runtime = 'nodejs';
 
@@ -54,10 +55,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const authSession = await getCurrentUser();
+    const authSession = await currentUser();
     const userEmail =
       authSession?.email ?? storedSession.userEmail ?? null;
-
+    
     const numDays = 30;
 
     const childName =
@@ -267,9 +268,35 @@ For each day:
 - EasyVariant: a much simpler fallback version if the parent is exhausted (or empty string if not needed).
 - NoteFromElf: 1–3 sentences in elf voice, speaking to the child by name, matching the vibe.
 - Materials: simple, realistic household items only.
-- ImagePrompt: start with a generic style like:
-  "Holiday elf-on-the-shelf style setup reference photo, photorealistic cosy December home, soft warm fairy lights and bokeh, shallow depth of field, vertical framing, no people or children, no text overlays."
-  THEN append the specific scene details so the parent can clearly copy the setup.
+- ImagePrompt: IMAGE PROMPT RULES (EXTREMELY IMPORTANT)
+
+Every "imagePrompt" MUST follow this structure:
+
+1. Start with this exact base style (do not change wording):
+   “Holiday elf-on-the-shelf style setup reference photo, photorealistic cosy December home, soft warm fairy lights and bokeh, shallow depth of field, vertical framing, no people or children, no text overlays. Elf doll with a friendly, playful face.”
+
+2. Then describe the scene using ONLY:
+   - Real physical craft materials (paper, tape, sticky notes, string, cotton, toy blocks, pens).
+   - Clear, literal visual descriptions.
+   - Camera-visible layout (where objects are placed, what they look like, what the elf is doing).
+   - The handwritten elf note (describe its presence, not its text).
+
+3. ABSOLUTELY FORBIDDEN inside "imagePrompt":
+   - ANY branded characters, phrases, logos, items, or references.
+     (No: Minecraft, Marvel, Disney, Fortnite, Pokémon, Lego, etc.)
+   - ANY real weapons, fire, harmful objects.
+   - ANY symbolic or abstract instructions (“inspired by…”, “like from a movie”, “implying heroes”).
+   - ANY actions that can’t be photographed.
+
+4. If the story references a branded character, the image MUST convert it into a
+   simple handmade craft version, e.g.:
+   - “small green boxy paper creature made from stacked sticky notes”
+   - “simple red-and-gold paper mask with generic geometric shapes”
+   The prompt must describe only what is literally visible.
+
+5. The final imagePrompt MUST be a single paragraph describing a real,
+   physically-buildable, photorealistic scene the parent can copy.
+
 
 SAFETY & TONE
 - No real weapons, self-harm, gore, or realistic danger.

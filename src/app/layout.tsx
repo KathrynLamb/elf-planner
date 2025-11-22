@@ -2,9 +2,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
-import { getCurrentUser } from '@/lib/auth';
 import { AuthSessionProvider } from '@/components/AuthSessionProvider';
-import { AuthButtons } from '@/components/AuthButtons';
+
 
 export const metadata: Metadata = {
   title: 'Elf Planner',
@@ -17,8 +16,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // purely for debugging; safe if it returns null
-  const user = await getCurrentUser();
-  console.log('session in RootLayout', user);
+
 
   return (
     <html lang="en">

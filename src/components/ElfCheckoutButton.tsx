@@ -51,6 +51,23 @@ export function ElfCheckoutButton({
 
       const data = await res.json();
 
+      if (res.status === 401) {
+        // Optionally show a quick message before redirect
+        // setError('Please sign in first, taking you to the magic-link page…');
+      
+        // Remember where they were so we can bounce back after login
+        const currentUrl = window.location.href;
+        const params = new URLSearchParams({
+          next: currentUrl,
+          // optional extra context if you want it later:
+          reason: 'checkout',
+          sessionId,
+        });
+      
+        window.location.href = `/login?${params.toString()}`;
+        return;
+      }
+
       if (!res.ok || !data.approveUrl) {
         throw new Error(
           data?.message || 'Unable to start checkout. Please try again.',
