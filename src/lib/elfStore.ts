@@ -74,10 +74,10 @@ export type ElfPlanObject = {
   days: ElfPlanDay[];
 
   /** Is this still being tweaked, or signed off and ready for emails? */
-  status: ElfPlanStatus;
+  status?: ElfPlanStatus;
 
   /** Increment each time we regenerate the whole plan. */
-  version: number;
+  version?: number;
 
   /** Timestamp when the parent approved the plan (for final only). */
   approvedAt?: number | null;

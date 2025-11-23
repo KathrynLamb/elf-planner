@@ -96,7 +96,8 @@ export async function POST(req: NextRequest) {
           strict: true,
           schema: {
             type: 'object',
-            required: ['planOverview', 'days'],
+            // With strict:true, required must list all properties
+            required: ['planOverview', 'parentNotes', 'days'],
             additionalProperties: false,
             properties: {
               planOverview: {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
               parentNotes: {
                 type: 'string',
                 description:
-                  'Optional global notes for the parent: safety, substitutions, encouragement.',
+                  'Optional global notes for the parent: safety, substitutions, encouragement. Can be empty string if not needed.',
               },
               days: {
                 type: 'array',
@@ -115,11 +116,23 @@ export async function POST(req: NextRequest) {
                 maxItems: numDays,
                 items: {
                   type: 'object',
+                  // With strict:true, required must include every key in properties
                   required: [
                     'dayNumber',
                     'title',
                     'description',
+                    'morningMoment',
+                    'easyVariant',
+                    'noteFromElf',
+                    'materials',
+                    'nightType',
+                    'effortLevel',
+                    'messLevel',
+                    'tags',
                     'imagePrompt',
+                    'imageUrl',
+                    'emailSubject',
+                    'emailPreview',
                   ],
                   additionalProperties: false,
                   properties: {
@@ -141,17 +154,17 @@ export async function POST(req: NextRequest) {
                     morningMoment: {
                       type: 'string',
                       description:
-                        'Optional: description of what the child discovers or does in the morning.',
+                        'Optional: description of what the child discovers or does in the morning. Use empty string if not needed.',
                     },
                     easyVariant: {
                       type: 'string',
                       description:
-                        'Optional: much simpler fallback version of this setup if the parent is exhausted.',
+                        'Optional: much simpler fallback version of this setup if the parent is exhausted. Use empty string if not needed.',
                     },
                     noteFromElf: {
                       type: 'string',
                       description:
-                        'Short note in the elf’s voice, to the child, 1–3 sentences.',
+                        'Short note in the elf’s voice, to the child, 1–3 sentences. Use empty string if not needed.',
                     },
                     materials: {
                       type: 'array',
@@ -186,7 +199,7 @@ export async function POST(req: NextRequest) {
                       type: 'array',
                       items: { type: 'string' },
                       description:
-                        'Optional keywords like "k-pop", "pets", "kindness", "puzzle".',
+                        'Optional keywords like "k-pop", "pets", "kindness", "puzzle". Can be empty array.',
                     },
                     imagePrompt: {
                       type: 'string',
@@ -196,17 +209,17 @@ export async function POST(req: NextRequest) {
                     imageUrl: {
                       type: 'string',
                       description:
-                        'Optional pre-generated image URL. Usually empty; filled later.',
+                        'Optional pre-generated image URL. Usually empty string; filled later.',
                     },
                     emailSubject: {
                       type: 'string',
                       description:
-                        'Optional: complete email subject, e.g. "Tonight: cereal-box zipline (5-min setup)".',
+                        'Optional: complete email subject, e.g. "Tonight: cereal-box zipline (5-min setup)". Use empty string if not needed.',
                     },
                     emailPreview: {
                       type: 'string',
                       description:
-                        'Optional: 1-sentence email preview line for the parent.',
+                        'Optional: 1-sentence email preview line for the parent. Use empty string if not needed.',
                     },
                   },
                 },
@@ -261,9 +274,9 @@ PER-NIGHT CONTENT
 For each day:
 - Title: specific, fun ("Pet Patrol Elevator", "Pillow-Fort Broadcast").
 - Description: 4–6 sentences explaining EXACTLY what the parent sets up at night.
-- MorningMoment: 1–3 sentences about what the child sees/does in the morning (optional but recommended).
+- MorningMoment: 1–3 sentences about what the child sees/does in the morning (optional but recommended; use empty string if you skip it).
 - EasyVariant: a much simpler fallback version if the parent is exhausted (or empty string if not needed).
-- NoteFromElf: 1–3 sentences in elf voice, speaking to the child by name, matching the vibe.
+- NoteFromElf: 1–3 sentences in elf voice, speaking to the child by name, matching the vibe (or empty string if not used).
 - Materials: simple, realistic household items only.
 - ImagePrompt: IMAGE PROMPT RULES (EXTREMELY IMPORTANT)
 
@@ -293,7 +306,6 @@ Every "imagePrompt" MUST follow this structure:
 
 5. The final imagePrompt MUST be a single paragraph describing a real,
    physically-buildable, photorealistic scene the parent can copy.
-
 
 SAFETY & TONE
 - No real weapons, self-harm, gore, or realistic danger.
@@ -406,20 +418,11 @@ No markdown, no extra keys, no comments.
       };
     });
 
-    // Work out the next version number based on any existing plan
-    const previousPlan = storedSession.plan as ElfPlanObject | null;
-    const previousVersion =
-      previousPlan && typeof previousPlan.version === 'number'
-        ? previousPlan.version
-        : 0;
-
     const finalPlan: ElfPlanObject = {
       planOverview: basePlan.planOverview ?? '',
-      parentNotes: basePlan.parentNotes ?? null,
+      parentNotes: basePlan.parentNotes || undefined,
       days: enrichedDays,
-      status: 'draft',
-      version: previousVersion + 1,
-      approvedAt: null,
+            
     };
 
     console.log('[generate-plan] finalPlan days[0]', finalPlan.days[0]);
