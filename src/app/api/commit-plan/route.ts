@@ -1,139 +1,97 @@
+// src/app/api/commit-plan/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  getElfSession,
-  patchElfSession,
-  ElfPlanObject,
-  redis,
-  REMINDER_SET_KEY,
-} from '@/lib/elfStore';
+import { getElfSession, patchElfSession, redis } from '@/lib/elfStore';
+import { Resend } from 'resend';
+import OpenAI from 'openai';
 
 export const runtime = 'nodejs';
 
-// Very small stub – plug this into your real email provider.
-async function sendElfIntroEmail(opts: {
-  to: string;
-  childName: string | null;
-  plan: ElfPlanObject;
-  materials: string[];
-}) {
-  const { to, childName, plan, materials } = opts;
+const resend = new Resend(process.env.RESEND_API_KEY!);
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-  // Replace this with Resend/Postmark/etc.
-  console.log('[dev] Would send Elf intro email to', to, {
-    childName,
-    overview: plan.planOverview,
-    totalMaterials: materials.length,
-  });
-}
+const REMINDER_SET_KEY = 'elf:reminder:sessions';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const {
-      sessionId,
-      email,
-      timezone,
-      hourLocal,
-    }: {
-      sessionId?: string;
-      email?: string;
-      timezone?: string;
-      hourLocal?: number;
-    } = body;
+    const { sessionId } = await req.json();
 
     if (!sessionId) {
-      return NextResponse.json(
-        { message: 'Missing sessionId.' },
-        { status: 400 },
-      );
+      return NextResponse.json({ message: 'Missing sessionId' }, { status: 400 });
     }
 
     const session = await getElfSession(sessionId);
-    if (!session || !session.plan) {
+    if (!session) {
+      return NextResponse.json({ message: 'Session not found' }, { status: 404 });
+    }
+
+    if (!session.plan || !session.plan.days) {
       return NextResponse.json(
-        { message: 'Elf plan not found for this session.' },
-        { status: 404 },
+        { message: 'Cannot commit — plan not found.' },
+        { status: 400 }
       );
     }
 
-    if (!session.plan.days || session.plan.days.length === 0) {
+    if (!session.userEmail) {
       return NextResponse.json(
-        { message: 'Elf plan has no days to commit.' },
-        { status: 400 },
+        { message: 'Missing user email — cannot send plan.' },
+        { status: 400 }
       );
     }
 
-    const plan = session.plan as ElfPlanObject;
-
-    const toEmail =
-      email ||
-      session.reminderEmail ||
-      session.userEmail ||
-      session.payerEmail;
-
-    if (!toEmail) {
-      return NextResponse.json(
-        {
-          message:
-            'No email found for this plan. Please sign in or provide an email address.',
-        },
-        { status: 400 },
-      );
+    // Prevent double commits
+    if (session.planCommittedAt) {
+      console.log('[commit-plan] Already committed, ignoring');
+      return NextResponse.json({ ok: true, alreadyCommitted: true });
     }
 
-    const tz = timezone || session.reminderTimezone || 'Europe/London';
-    const hour =
-      typeof hourLocal === 'number'
-        ? hourLocal
-        : session.reminderHourLocal ?? 7;
+    // ---- BUILD MATERIALS LIST ----
+    const allMaterials = Array.from(
+      new Set(
+        session.plan.days
+          .flatMap((d) => d.materials || [])
+          .map((m) => m.trim())
+          .filter(Boolean)
+      )
+    );
 
-    // Build deduped materials list for the whole month
-    const materialsSet = new Set<string>();
-    for (const day of plan.days) {
-      (day.materials ?? []).forEach((m) => {
-        const trimmed = m.trim();
-        if (trimmed) materialsSet.add(trimmed);
-      });
-    }
-    const materials = Array.from(materialsSet);
+    const materialsList = allMaterials.length
+      ? allMaterials.map((m) => `• ${m}`).join('\n')
+      : 'Your Elf needs no special materials — just a cosy home!';
 
-    // Fire intro email (overview + materials list)
-    await sendElfIntroEmail({
-      to: toEmail,
-      childName: session.childName,
-      plan,
-      materials,
+    // ---- BUILD OVERVIEW EMAIL ----
+    const introEmailHtml = `
+      <h1>Your Elf Plan is Ready 🎄</h1>
+      <p>Thanks for reviewing all 30 nights! Your Elf plan is now locked in.</p>
+
+      <h2>Monthly Materials Checklist</h2>
+      <pre style="font-size:14px; white-space:pre-wrap;">${materialsList}</pre>
+
+      <p>You’ll receive a fresh Elf idea every morning starting tomorrow.</p>
+      <p>Love, Merry the Elf ✨</p>
+    `;
+
+    // ---- SEND EMAIL ----
+    await resend.emails.send({
+      from: 'Merry the Elf <merry@elfontheshelf.uk>',
+      to: session.userEmail,
+      subject: `Your Elf Plan is Ready for ${session.childName ?? 'your kiddo'} 🎄`,
+      html: introEmailHtml,
     });
 
-    // Mark plan as committed + store reminder settings
-    const committedAt = session.planCommittedAt ?? Date.now();
-
-    await patchElfSession(sessionId, {
-      planCommittedAt: committedAt,
-      reminderEmail: toEmail,
-      reminderTimezone: tz,
-      reminderHourLocal: hour,
-    });
-
-    // Register this session for your daily cron worker
+    // ---- REGISTER FOR DAILY CRON ----
     await redis.sadd(REMINDER_SET_KEY, sessionId);
 
-    return NextResponse.json({
-      ok: true,
-      committedAt,
-      reminderEmail: toEmail,
-      reminderTimezone: tz,
-      reminderHourLocal: hour,
-      materialsCount: materials.length,
+    // ---- STORE IN SESSION ----
+    await patchElfSession(sessionId, {
+      planCommittedAt: Date.now(),
     });
+
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('[commit-plan] error', err);
     return NextResponse.json(
-      {
-        message:
-          err?.message || 'Something went wrong committing this Elf plan.',
-      },
-      { status: 500 },
+      { message: err.message || 'Commit failed.' },
+      { status: 500 }
     );
   }
 }

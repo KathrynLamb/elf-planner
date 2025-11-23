@@ -62,6 +62,24 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
     if (index > 0) setIndex(index - 1);
   }
 
+  async function handleCommit() {
+    const res = await fetch('/api/commit-plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+  
+    const data = await res.json();
+  
+    if (!res.ok) {
+      alert(data.message || 'Error committing plan');
+      return;
+    }
+  
+    alert('Your plan is locked in! Your first Elf email arrives tomorrow 🎄');
+  }
+  
+
   async function handleLove() {
     if (!current) return;
     setLovedDays((prev) => {
@@ -86,35 +104,35 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
     );
   }
 
-  async function handleCommit() {
-    if (commitLoading || commitDone || !sessionId) return;
-    setCommitLoading(true);
-    setCommitError(null);
+//   async function handleCommit() {
+//     if (commitLoading || commitDone || !sessionId) return;
+//     setCommitLoading(true);
+//     setCommitError(null);
 
-    try {
-      const res = await fetch('/api/commit-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId }),
-      });
+//     try {
+//       const res = await fetch('/api/commit-plan', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({ sessionId }),
+//       });
 
-      const data = await res.json();
+//       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.message || 'Could not commit plan.');
-      }
+//       if (!res.ok) {
+//         throw new Error(data.message || 'Could not commit plan.');
+//       }
 
-      setCommitDone(true);
-    } catch (err: any) {
-      console.error('[ElfPlanSwiper] commit error', err);
-      setCommitError(
-        err?.message ||
-          'Something went wrong locking in this plan. Please try again.',
-      );
-    } finally {
-      setCommitLoading(false);
-    }
-  }
+//       setCommitDone(true);
+//     } catch (err: any) {
+//       console.error('[ElfPlanSwiper] commit error', err);
+//       setCommitError(
+//         err?.message ||
+//           'Something went wrong locking in this plan. Please try again.',
+//       );
+//     } finally {
+//       setCommitLoading(false);
+//     }
+//   }
 
   if (!current) return null;
 
@@ -235,6 +253,18 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
           onSwapComplete={handleSwapComplete}
         />
       )}
+
+{index === internalDays.length - 1 && (
+  <div className="mt-6">
+    <button
+      onClick={handleCommit}
+      className="w-full bg-emerald-500 text-slate-950 rounded-xl py-3 font-semibold shadow-md shadow-emerald-600/20 hover:bg-emerald-400 transition"
+    >
+      I’m happy — email me my plan 🎄
+    </button>
+  </div>
+)}
+
     </div>
   );
 }

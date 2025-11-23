@@ -813,25 +813,24 @@ export default function SuccessClient() {
               </div>
             )}
 
-
             {/* When plan exists, show it full-width under the header */}
             {hasPlanObject && (
 
-  <ElfPlanSwiper
-    days={(plan as ElfPlanObject).days!.map(day => ({
-      dayNumber: day.dayNumber!,
-      title: day.title!,
-      description: day.description!,
-      noteFromElf: day.noteFromElf ?? null,
-      morningMoment: (day as any).morningMoment ?? null,
-      materials: (day as any).materials ?? [],
-      weekday: day.weekday,
-      date: day.date,
-      imageUrl: (day as any).imageUrl ?? null
-    }))}
-    sessionId={sessionId}
-  />
-)}
+                <ElfPlanSwiper
+                  days={(plan as ElfPlanObject).days!.map(day => ({
+                    dayNumber: day.dayNumber!,
+                    title: day.title!,
+                    description: day.description!,
+                    noteFromElf: day.noteFromElf ?? null,
+                    morningMoment: (day as any).morningMoment ?? null,
+                    materials: (day as any).materials ?? [],
+                    weekday: day.weekday,
+                    date: day.date,
+                    imageUrl: (day as any).imageUrl ?? null
+                  }))}
+                  sessionId={sessionId}
+                />
+              )}
           </div>
 
           {/* RIGHT: Elf card (only before the plan exists) */}
