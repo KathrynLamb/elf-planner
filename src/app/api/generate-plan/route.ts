@@ -9,9 +9,7 @@ import {
   EffortLevel,
   MessLevel,
 } from '@/lib/elfStore';
-// import { getCurrentSession } from '@/lib/auth';
 import { currentUser } from '@/lib/currentUser';
-
 
 export const runtime = 'nodejs';
 
@@ -56,9 +54,8 @@ export async function POST(req: NextRequest) {
     }
 
     const authSession = await currentUser();
-    const userEmail =
-      authSession?.email ?? storedSession.userEmail ?? null;
-    
+    const userEmail = authSession?.email ?? storedSession.userEmail ?? null;
+
     const numDays = 30;
 
     const childName =
@@ -377,44 +374,52 @@ No markdown, no extra keys, no comments.
     };
 
     // Enrich days with our calendar (date + weekday) and defaults
-// Enrich days with our calendar (date + weekday) and defaults
-const enrichedDays = calendarMeta.map((meta, idx) => {
-  const modelDay = basePlan.days[idx] ?? ({} as any);
+    const enrichedDays = calendarMeta.map((meta, idx) => {
+      const modelDay = basePlan.days[idx] ?? ({} as any);
 
-  return {
-    dayNumber: meta.dayNumber,
-    date: meta.date,
-    weekday: meta.weekday,
+      return {
+        dayNumber: meta.dayNumber,
+        date: meta.date,
+        weekday: meta.weekday,
 
-    title: modelDay.title ?? `Night ${meta.dayNumber}`,
-    description: modelDay.description ?? '',
+        title: modelDay.title ?? `Night ${meta.dayNumber}`,
+        description: modelDay.description ?? '',
 
-    morningMoment: modelDay.morningMoment || undefined,
-    easyVariant: modelDay.easyVariant || undefined,
-    noteFromElf: modelDay.noteFromElf || undefined,
+        morningMoment: modelDay.morningMoment || undefined,
+        easyVariant: modelDay.easyVariant || undefined,
+        noteFromElf: modelDay.noteFromElf || undefined,
 
-    materials: modelDay.materials ?? [],
+        materials: modelDay.materials ?? [],
 
-    // 🔧 Cast model strings into your union types
-    nightType: modelDay.nightType as NightType | undefined,
-    effortLevel: modelDay.effortLevel as EffortLevel | undefined,
-    messLevel: modelDay.messLevel as MessLevel | undefined,
+        // Cast model strings into your union types
+        nightType: modelDay.nightType as NightType | undefined,
+        effortLevel: modelDay.effortLevel as EffortLevel | undefined,
+        messLevel: modelDay.messLevel as MessLevel | undefined,
 
-    tags: modelDay.tags ?? [],
+        tags: modelDay.tags ?? [],
 
-    imagePrompt: modelDay.imagePrompt ?? '',
-    imageUrl: modelDay.imageUrl ?? null,
+        imagePrompt: modelDay.imagePrompt ?? '',
+        imageUrl: modelDay.imageUrl ?? null,
 
-    emailSubject: modelDay.emailSubject || undefined,
-    emailPreview: modelDay.emailPreview || undefined,
-  };
-});
+        emailSubject: modelDay.emailSubject || undefined,
+        emailPreview: modelDay.emailPreview || undefined,
+      };
+    });
 
+    // Work out the next version number based on any existing plan
+    const previousPlan = storedSession.plan as ElfPlanObject | null;
+    const previousVersion =
+      previousPlan && typeof previousPlan.version === 'number'
+        ? previousPlan.version
+        : 0;
 
     const finalPlan: ElfPlanObject = {
       planOverview: basePlan.planOverview ?? '',
-      parentNotes: basePlan.parentNotes || undefined,
+      parentNotes: basePlan.parentNotes ?? null,
       days: enrichedDays,
+      status: 'draft',
+      version: previousVersion + 1,
+      approvedAt: null,
     };
 
     console.log('[generate-plan] finalPlan days[0]', finalPlan.days[0]);

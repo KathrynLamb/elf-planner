@@ -30,6 +30,13 @@ export type EffortLevel =
 
 export type MessLevel = 'none' | 'low' | 'medium' | 'high';
 
+// src/lib/elfStore.ts
+
+export type ElfPlanStatus = 'draft' | 'final';
+
+
+
+
 export type ElfPlanDay = {
   dayNumber: number;
   date: string;    // "YYYY-MM-DD"
@@ -65,6 +72,15 @@ export type ElfPlanObject = {
   parentNotes?: string | null;
 
   days: ElfPlanDay[];
+
+  /** Is this still being tweaked, or signed off and ready for emails? */
+  status: ElfPlanStatus;
+
+  /** Increment each time we regenerate the whole plan. */
+  version: number;
+
+  /** Timestamp when the parent approved the plan (for final only). */
+  approvedAt?: number | null;
 };
 
 /* -------------------- Inferred profile --------------------- */
@@ -98,6 +114,8 @@ export type ElfSessionRecord = {
   ageYears: number | null;
   startDate: string | null; // YYYY-MM-DD or null
   vibe: ElfVibe | null;
+
+  parentName?: string | null;
 
   miniPreview: string | null;
 
@@ -138,6 +156,8 @@ export type StoredElfPlan = {
   payerEmail?: string | null;
 
   miniPreview?: string | null;
+
+  parentName?: string | null;
 
   // These come back as whatever we stored; SuccessClient already handles "any".
   introChatTranscript?: any;
@@ -219,6 +239,8 @@ export async function getElfSession(
     startDate: data.startDate ?? null,
     vibe: (data.vibe as ElfVibe) ?? null,
 
+    parentName: data.parentName ?? null,  // 👈 new
+
     miniPreview: data.miniPreview ?? null,
 
     introChatTranscript: safeParseArray(data.introChatTranscript),
@@ -263,6 +285,8 @@ export async function patchElfSession(
     vibe: existing?.vibe ?? null,
 
     miniPreview: existing?.miniPreview ?? null,
+    parentName: existing?.parentName ?? null,  // 👈 new
+
 
     introChatTranscript: existing?.introChatTranscript ?? [],
     hotlineTranscript: existing?.hotlineTranscript ?? [],
