@@ -320,6 +320,8 @@ export async function patchElfSession(
     vibe: merged.vibe ?? '',
 
     miniPreview: merged.miniPreview ?? '',
+    parentName: merged.parentName ?? '',  // 👈 new
+
 
     introChatTranscript: JSON.stringify(merged.introChatTranscript ?? []),
     hotlineTranscript: JSON.stringify(merged.hotlineTranscript ?? []),
