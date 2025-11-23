@@ -760,7 +760,7 @@ useEffect(() => {
             </div>
 
             {/* STEP 2: GENERATE BUTTON */}
-            {!hasPlanObject && (
+            {/* {!hasPlanObject && (
               <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -803,7 +803,7 @@ useEffect(() => {
                   You&apos;ll get your full plan shortly after this step.
                 </p>
               </div>
-            )}
+            )} */}
 
             {/* When plan exists, show it full-width under the steps */}
             {hasPlanObject && <PlanViewer plan={plan as ElfPlanObject} />}
@@ -830,7 +830,7 @@ useEffect(() => {
         </section>
 
         {/* NIGHTLY REMINDER SIGNUP */}
-        <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 md:p-7">
+        {/* <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 md:p-7">
           <h3 className="text-sm font-semibold">
             Get nightly Elf email reminders
           </h3>
@@ -866,7 +866,7 @@ useEffect(() => {
           {reminderMsg && (
             <p className="text-[11px] text-emerald-300">{reminderMsg}</p>
           )}
-        </section>
+        </section> */}
       </div>
     </main>
   );

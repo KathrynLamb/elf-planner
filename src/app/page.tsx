@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { ElfCheckoutButton } from '@/components/ElfCheckoutButton';
 
-import { GeneratePlanButton } from '@/components/GeneratePlanButton';
+import { MiniChatSection } from '@/components/MiniChatSection';
 
 export default function HomePage() {
 
@@ -57,78 +57,6 @@ export default function HomePage() {
   );
 }
 
-// export function HeroSection() {
-//   // simple helper to smooth-scroll to a section by id
-//   function scrollToSection(id: string) {
-//     const el = document.getElementById(id);
-//     if (!el) return;
-//     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-//   }
-  
-//     return (
-//       <section
-//         className="relative bg-cover bg-center bg-no-repeat min-h-screen"
-//         style={{ backgroundImage: "url('/bg1.png')" }}
-//       >
-//         {/* Dark festive overlay so text stays readable */}
-//         {/* <div className="absolute inset-0 bg-[rgba(0,0,0,0.55)] backdrop-blur-[1px]" /> */}
-
-//         <AuthButtons />
-  
-//         <div className="relative mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
-//           {/* Left: copy */}
-//           <div className="flex-1 text-center lg:text-left">
-//             <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300 drop-shadow">
-//               Elf-on-the-Shelf, without the mental load
-//             </p>
-  
-//             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white drop-shadow-lg sm:text-4xl md:text-5xl">
-//               Wake up to Elf magic,
-//               <span className="block text-[#f4d27a] drop-shadow-[0_0_8px_rgba(0,0,0,0.4)]">
-//                 not parent panic.
-//               </span>
-//             </h1>
-  
-//             <p className="mt-4 max-w-xl text-base text-slate-200 sm:text-lg drop-shadow">
-//               Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf
-//               setup to do after bedtime – plus a tiny note for your child to discover in
-//               the morning. Built for knackered parents, kind to sensitive kids, and
-//               tailored to your time, mess tolerance, and family traditions.
-//             </p>
-  
-//             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start sm:gap-4">
-//               <button
-//                 type="button"
-//                 onClick={() => scrollToSection('mini-chat')}
-//                 className="inline-flex items-center justify-center rounded-full bg-[#d43c2f] hover:bg-[#bf3328] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f4d27a]"
-//               >
-//                 Meet Merry &amp; get your plan
-//               </button>
-  
-//               <button
-//                 type="button"
-//                 onClick={() => scrollToSection('what-you-get')}
-//                 className="text-sm font-medium text-slate-200 underline-offset-4 hover:underline"
-//               >
-//                 See a sample night
-//               </button>
-//             </div>
-  
-//             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-300 sm:justify-start drop-shadow">
-//               <span>One-off £9 · Pay securely via PayPal</span>
-//               <span className="hidden sm:inline">•</span>
-//               <span>No subscriptions, no upsells</span>
-//               <span className="hidden sm:inline">•</span>
-//               <span>Tiny 2-minute ideas or big show-stoppers – you choose</span>
-//             </div>
-//           </div>
-  
-
-    
-//         </div>
-//       </section>
-//     );
-//   }
 export function HeroSection() {
   function scrollToSection(id: string) {
     const el = document.getElementById(id);
@@ -153,13 +81,13 @@ export function HeroSection() {
       <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
         {/* LEFT: copy */}
         <div className="flex-1 text-center lg:text-left">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-300/80">
-            Elf-on-the-Shelf, without the mental load
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#1B7D43]/80">
+            Elf magic, without the mental load!
           </p>
 
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl md:text-5xl">
             Wake up to Elf magic,
-            <span className="block text-emerald-300">not parent panic.</span>
+            <span className="block text-[#1B7D43]">not parent panic.</span>
           </h1>
 
           <p className="mt-4 max-w-xl text-base text-slate-200/95 sm:text-lg">
@@ -173,7 +101,7 @@ export function HeroSection() {
             <button
               type="button"
               onClick={() => scrollToSection('mini-chat')}
-              className="inline-flex items-center justify-center rounded-full bg-[#d43c2f] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#bf3328]"
+              className="inline-flex items-center justify-center rounded-xl bg-[#DD3A33] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#DD3A33]/70"
             >
               Meet Merry and get your plan
             </button>
@@ -188,7 +116,7 @@ export function HeroSection() {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-200/80 sm:justify-start">
-            <span>One-off £9 · Pay securely via PayPal</span>
+            <span>One-off $14.99 · Pay securely via PayPal</span>
             <span className="hidden sm:inline">•</span>
             <span>No subscriptions, no upsells</span>
             <span className="hidden sm:inline">•</span>
@@ -217,9 +145,9 @@ export function HeroSection() {
         </div>
       </div>
 
-      <p className="relative z-10 mt-2 pb-6 text-center text-[11px] text-slate-300/80">
+      {/* <p className="relative z-10 mt-2 pb-6 text-center text-[11px] text-slate-300/80">
         A real example of the Merry-style Elf you’ll meet in your plan.
-      </p>
+      </p> */}
     </section>
   );
 }
@@ -577,198 +505,4 @@ function SiteFooter() {
     </footer>
   );
 }
-export function MiniChatSection() {
-  type ChatMessage = {
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-  };
 
-  const [sessionId] = React.useState(() => {
-    if (typeof window === 'undefined') return '';
-    const existing = window.localStorage.getItem('elf-mini-session-id');
-    if (existing) return existing;
-    const id = crypto.randomUUID();
-    window.localStorage.setItem('elf-mini-session-id', id);
-    return id;
-  });
-
-  const childName = 'your child';
-  const ageRange = '4–7 years';
-  const startDate = new Date().toISOString().slice(0, 10);
-  const vibe: 'silly' | 'kind' | 'calm' = 'silly';
-
-  const [messages, setMessages] = React.useState<ChatMessage[]>([
-    {
-      id: 'm-1',
-      role: 'assistant',
-      content:
-        "Ho ho hello! I’m Merry, your December Elf helper. 🎄",
-    },
-  ]);
-
-  const [input, setInput] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [hasPreview, setHasPreview] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false);
-
-  const latestAssistant = messages.filter((m) => m.role === 'assistant').at(-1);
-
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: ChatMessage = {
-      id: `m-${Date.now()}`,
-      role: 'user',
-      content: input.trim(),
-    };
-
-    const newHistory = [...messages, userMessage];
-    setMessages(newHistory);
-    setInput('');
-    setIsLoading(true);
-    setError(null);
-    setIsExpanded(false);
-
-    try {
-      const res = await fetch('/api/elf-mini-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          messages: newHistory.map(({ role, content }) => ({ role, content })),
-        }),
-      });
-
-      if (!res.ok) throw new Error('Something went wrong. Please try again.');
-      const data = await res.json();
-
-      const assistantMessage: ChatMessage = {
-        id: `m-${Date.now()}-a`,
-        role: 'assistant',
-        content: data.reply,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      setHasPreview(true);
-    } catch (err: any) {
-      setError(
-        err?.message ||
-          'Oops, the North Pole wifi dropped. Please try again in a moment.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  return (
-<section
-  id="mini-chat"
-  className="
-    relative min-h-screen w-full flex items-center justify-center
-    px-4 sm:px-6 lg:px-8"
-    style={{ backgroundImage: "url('/bg_blend.png')" }}
-    
->
-  {/* Soft festive edges */}
-  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,226,150,0.12),transparent_70%)]" />
-  <div className="pointer-events-none absolute inset-0 bg-[url('/bg_blend.png')] bg-cover bg-center opacity-[0.18]" />
-
-  <div className="relative w-full max-w-3xl mx-auto text-center py-16">
-    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
-      Try a free mini chat with Merry
-    </h2>
-
-    <p className="mt-4 max-w-xl mx-auto text-slate-200 leading-relaxed">
-      Type one or two sentences about your kid and Merry will sketch a tiny preview of a few Elf mornings she’d plan just for you.
-    </p>
-
-    {/* CHAT CARD */}
-    <div className="relative mt-10 w-full max-w-2xl mx-auto">
-      <div className="absolute -inset-4 rounded-[30px] bg-red-500/20 blur-2xl" />
-
-      <div className="relative rounded-[28px] bg-black/20 backdrop-blur-xl border border-white/10 px-6 py-8 shadow-[0_25px_80px_rgba(0,0,0,0.7)]">
-
-        {/* Assistant bubble */}
-        {latestAssistant && (
-          <div className="rounded-2xl bg-white/10 px-5 py-4 text-left text-[15px] leading-relaxed text-slate-100 border border-white/10 shadow-inner">
-            <p className={isExpanded ? "" : "max-h-40 overflow-hidden relative"}>
-              {latestAssistant.content}
-            </p>
-
-            {!isExpanded && latestAssistant.content.length > 260 && (
-              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-            )}
-
-            {latestAssistant.content.length > 260 && (
-              <button
-                type="button"
-                onClick={() => setIsExpanded((v) => !v)}
-                className="mt-2 text-xs font-medium text-yellow-300 hover:underline"
-              >
-                {isExpanded ? "Show less" : "Show full preview"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* User bubble */}
-        {messages.filter((m) => m.role === "user").length > 0 && (
-          <div className="mt-4 flex justify-end">
-            <div className="rounded-2xl bg-yellow-300 px-5 py-3 text-right text-[14px] text-slate-900 shadow-lg shadow-yellow-300/40">
-              {messages.filter((m) => m.role === "user").at(-1)?.content}
-            </div>
-          </div>
-        )}
-
-        {/* Input */}
-        <form onSubmit={handleSend} className="mt-6 flex gap-3">
-          <input
-            className="
-              flex-1 rounded-full 
-              bg-white/10 border border-white/20 
-              px-4 py-3 
-              text-sm text-white placeholder:text-slate-300
-              focus:border-yellow-300 focus:ring-1 focus:ring-yellow-300 focus:outline-none
-            "
-            placeholder="Tell Merry about your kid and December…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="
-              rounded-full bg-green-300 px-6 py-3
-              text-sm font-semibold text-white shadow-lg shadow-yellow-300/40
-              hover:bg-green-200 transition
-              disabled:bg-green-600
-
-            "
-          >
-            {isLoading ? "Sending…" : "Send"}
-          </button>
-        </form>
-
-        {/* Upsell */}
-        {hasPreview && (
-          <div className="mt-6 rounded-2xl border border-yellow-300/30 bg-yellow-300/10 p-4 text-left text-sm text-slate-100 backdrop-blur-md">
-            <p className="mb-1 font-semibold text-yellow-200">Like this vibe?</p>
-            <p className="mb-2 text-slate-200">
-              Let Merry plan the whole Elf season for you.
-            </p>
-
-            <GeneratePlanButton
-                sessionId={sessionId} 
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-</section>
-
-  );
-}

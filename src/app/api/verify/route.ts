@@ -1,4 +1,4 @@
-// src/app/api/auth/verify/route.ts
+// src/app/api/verify/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users, loginTokens, sessions, elfSessions } from '@/lib/schema';
