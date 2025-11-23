@@ -423,8 +423,7 @@ No markdown, no extra keys, no comments.
       parentNotes: basePlan.parentNotes || undefined,
       days: enrichedDays,
       status: 'draft',   // 🧠 smart default — user still needs to review
-      version: 1,
-            
+      version: 1,           
     };
 
     console.log('[generate-plan] finalPlan days[0]', finalPlan.days[0]);

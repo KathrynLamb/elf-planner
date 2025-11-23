@@ -23,52 +23,57 @@ export async function GET(req: NextRequest) {
   )) as ElfSessionRecord | null;
 
   // 2) Fallback: legacy JSON key `elf-session:${sessionId}`
-  if (!session) {
-    const legacy = await redis.get<{
-      childName?: string;
-      ageRange?: string;
-      startDate?: string;
-      vibe?: 'silly' | 'kind' | 'calm';
-      miniPreview?: string | null;
-    }>(`elf-session:${sessionId}`);
+// 2) Fallback: legacy JSON key `elf-session:${sessionId}`
+if (!session) {
+  const legacy = await redis.get<{
+    childName?: string;
+    ageRange?: string;
+    startDate?: string;
+    vibe?: 'silly' | 'kind' | 'calm';
+    miniPreview?: string | null;
+  }>(`elf-session:${sessionId}`);
 
-    if (legacy) {
-      const now = Date.now();
+  if (legacy) {
+    const now = Date.now();
 
-      session = {
-        sessionId,
+    session = {
+      sessionId,
 
-        // core child/session fields
-        childName: legacy.childName ?? null,
-        ageRange: legacy.ageRange ?? null,
-        ageYears: null,
-        startDate: legacy.startDate ?? null,
-        vibe: legacy.vibe ?? null,
+      // core child/session fields
+      childName: legacy.childName ?? null,
+      ageRange: legacy.ageRange ?? null,
+      ageYears: null,
+      startDate: legacy.startDate ?? null,
+      vibe: legacy.vibe ?? null,
 
-        // marketing / preview fields
-        miniPreview: legacy.miniPreview ?? null,
+      // preview
+      miniPreview: legacy.miniPreview ?? null,
 
-        // transcripts (legacy sessions had none)
-        introChatTranscript: [],
-        hotlineTranscript: [],
+      // transcripts (legacy had none)
+      introChatTranscript: [],
+      hotlineTranscript: [],
 
-        // inferred profile (only exists for new flow)
-        inferredProfile: null,
+      // inferred profile (new system only)
+      inferredProfile: null,
 
-        // plan + artefacts
-        plan: null,
-        planGeneratedAt: null,
-        pdfUrl: null,
+      // plan & outputs
+      plan: null,
+      planGeneratedAt: null,
+      pdfUrl: null,
 
-        // emails
-        userEmail: null,
-        payerEmail: null,
+      // new field — default null
+      planCommittedAt: null,
 
-        createdAt: now,
-        updatedAt: now,
-      };
-    }
+      // emails
+      userEmail: null,
+      payerEmail: null,
+
+      createdAt: now,
+      updatedAt: now,
+    };
   }
+}
+
 
   if (!session) {
     console.warn('[elf-session API] no session found for', sessionId);

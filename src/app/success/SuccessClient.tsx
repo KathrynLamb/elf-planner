@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { StoredElfPlan } from '@/lib/elfStore';
+import ElfPlanSwiper from '@/components/ElfPlanSwiper';
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
 
@@ -626,7 +627,7 @@ export default function SuccessClient() {
   }
 
   const canShowGenerate = !plan && (hotlineDone || hotlineSkipped);
-
+  if (!sessionId) return null; // or render a fallback
   // -------- JSX --------
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
@@ -650,10 +651,10 @@ export default function SuccessClient() {
               </p>
           
               <h1 className="mb-2 text-2xl font-semibold md:text-3xl">
-  {hasPlanObject
-    ? `Here’s ${elfSession?.childName ? `${elfSession.childName}’s` : 'your'} 30-night Elf plan 🎄`
-    : `Let’s make an Elf plan that perfectly fits ${elfSession?.childName ? elfSession.childName : 'your kiddo'} 🎄`}
-</h1>
+                {hasPlanObject
+                  ? `Here’s ${elfSession?.childName ? `${elfSession.childName}’s` : 'your'} 30-night Elf plan 🎄`
+                  : `Let’s make an Elf plan that perfectly fits ${elfSession?.childName ? elfSession.childName : 'your kiddo'} 🎄`}
+              </h1>
 
               <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] text-slate-300">
@@ -812,8 +813,25 @@ export default function SuccessClient() {
               </div>
             )}
 
+
             {/* When plan exists, show it full-width under the header */}
-            {hasPlanObject && <PlanViewer plan={plan as ElfPlanObject} />}
+            {hasPlanObject && (
+
+  <ElfPlanSwiper
+    days={(plan as ElfPlanObject).days!.map(day => ({
+      dayNumber: day.dayNumber!,
+      title: day.title!,
+      description: day.description!,
+      noteFromElf: day.noteFromElf ?? null,
+      morningMoment: (day as any).morningMoment ?? null,
+      materials: (day as any).materials ?? [],
+      weekday: day.weekday,
+      date: day.date,
+      imageUrl: (day as any).imageUrl ?? null
+    }))}
+    sessionId={sessionId}
+  />
+)}
           </div>
 
           {/* RIGHT: Elf card (only before the plan exists) */}

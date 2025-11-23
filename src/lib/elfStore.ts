@@ -112,14 +112,12 @@ export type ElfSessionRecord = {
   childName: string | null;
   ageRange: string | null;
   ageYears: number | null;
-  startDate: string | null; // YYYY-MM-DD or null
+  startDate: string | null;
   vibe: ElfVibe | null;
-
-  parentName?: string | null;
 
   miniPreview: string | null;
 
-  introChatTranscript: any[];      // mini-chat history (JSON blobs)
+  introChatTranscript: any[];
   hotlineTranscript: HotlineTurn[];
 
   inferredProfile: InferredElfProfile | null;
@@ -131,14 +129,18 @@ export type ElfSessionRecord = {
   userEmail: string | null;
   payerEmail: string | null;
 
+  // NEW
+  planCommittedAt: number | null;
+
   // reminder settings
   reminderEmail?: string | null;
-  reminderTimezone?: string | null;   // e.g. "Europe/London"
-  reminderHourLocal?: number | null;  // 7 = 7am local
+  reminderTimezone?: string | null;
+  reminderHourLocal?: number | null;
 
   createdAt: number;
   updatedAt: number;
 };
+
 
 /**
  * Lightweight shape we return from /api/elf-session for the Success page UI.
@@ -157,9 +159,6 @@ export type StoredElfPlan = {
 
   miniPreview?: string | null;
 
-  parentName?: string | null;
-
-  // These come back as whatever we stored; SuccessClient already handles "any".
   introChatTranscript?: any;
   hotlineTranscript?: any;
 
@@ -168,6 +167,9 @@ export type StoredElfPlan = {
 
   pdfUrl?: string | null;
 
+  // NEW
+  planCommittedAt?: number | null;
+
   reminderEmail?: string | null;
   reminderTimezone?: string | null;
   reminderHourLocal?: number | null;
@@ -175,6 +177,7 @@ export type StoredElfPlan = {
   createdAt: number;
   updatedAt: number;
 };
+
 
 export const REMINDER_SET_KEY = 'elf:reminder:sessions';
 
@@ -229,7 +232,6 @@ export async function getElfSession(
     data.inferredProfile,
   );
   const plan = safeParseObject<ElfPlanObject>(data.plan);
-
   return {
     sessionId,
 
@@ -238,8 +240,6 @@ export async function getElfSession(
     ageYears: data.ageYears ? Number(data.ageYears) : null,
     startDate: data.startDate ?? null,
     vibe: (data.vibe as ElfVibe) ?? null,
-
-    parentName: data.parentName ?? null,  // 👈 new
 
     miniPreview: data.miniPreview ?? null,
 
@@ -255,6 +255,9 @@ export async function getElfSession(
     userEmail: data.userEmail ?? null,
     payerEmail: data.payerEmail ?? null,
 
+    // NEW
+    planCommittedAt: data.planCommittedAt ? Number(data.planCommittedAt) : null,
+
     reminderEmail: data.reminderEmail ?? null,
     reminderTimezone: data.reminderTimezone ?? null,
     reminderHourLocal: data.reminderHourLocal
@@ -264,6 +267,7 @@ export async function getElfSession(
     createdAt: data.createdAt ? Number(data.createdAt) : now,
     updatedAt: data.updatedAt ? Number(data.updatedAt) : now,
   };
+
 }
 
 /* -------------------- patchElfSession ---------------------- */
@@ -285,8 +289,6 @@ export async function patchElfSession(
     vibe: existing?.vibe ?? null,
 
     miniPreview: existing?.miniPreview ?? null,
-    parentName: existing?.parentName ?? null,  // 👈 new
-
 
     introChatTranscript: existing?.introChatTranscript ?? [],
     hotlineTranscript: existing?.hotlineTranscript ?? [],
@@ -300,6 +302,9 @@ export async function patchElfSession(
     userEmail: existing?.userEmail ?? null,
     payerEmail: existing?.payerEmail ?? null,
 
+    // NEW
+    planCommittedAt: existing?.planCommittedAt ?? null,
+
     reminderEmail: existing?.reminderEmail ?? null,
     reminderTimezone: existing?.reminderTimezone ?? null,
     reminderHourLocal: existing?.reminderHourLocal ?? null,
@@ -307,9 +312,9 @@ export async function patchElfSession(
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
 
-    // let the incoming patch override any of the above
     ...patch,
   };
+
 
   const toStore: Record<string, string> = {
     sessionId: merged.sessionId,
@@ -320,8 +325,6 @@ export async function patchElfSession(
     vibe: merged.vibe ?? '',
 
     miniPreview: merged.miniPreview ?? '',
-    parentName: merged.parentName ?? '',  // 👈 new
-
 
     introChatTranscript: JSON.stringify(merged.introChatTranscript ?? []),
     hotlineTranscript: JSON.stringify(merged.hotlineTranscript ?? []),
@@ -336,6 +339,10 @@ export async function patchElfSession(
     userEmail: merged.userEmail ?? '',
     payerEmail: merged.payerEmail ?? '',
 
+    // NEW
+    planCommittedAt:
+      merged.planCommittedAt != null ? String(merged.planCommittedAt) : '',
+
     reminderEmail: merged.reminderEmail ?? '',
     reminderTimezone: merged.reminderTimezone ?? '',
     reminderHourLocal:
@@ -344,6 +351,7 @@ export async function patchElfSession(
     createdAt: String(merged.createdAt),
     updatedAt: String(merged.updatedAt),
   };
+
 
   await redis.hset(sessionKey(sessionId), toStore);
   return merged;
