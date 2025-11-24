@@ -64,22 +64,34 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative overflow-hidden min-h-[600px] flex items-center">
-      {/* Full-width background image */}
+    <section className="relative overflow-hidden min-h-[520px] sm:min-h-[600px] flex items-center">
+      {/* Background images */}
       <div className="absolute inset-0">
-    <Image
-      src="/elf_plan3.png"
-      alt="Elf and toys causing cosy Christmas mischief in a kitchen"
-      fill
-      priority
-      // bias the crop slightly to the right so the elf is off-centre
-      className="object-cover object-[70%_50%]"
-    />
+        {/* Desktop / tablet hero */}
+        <div className="hidden sm:block absolute inset-0">
+          <Image
+            src="/elf_plan-desktop.png"
+            alt="Christmas elf working at a tiny desk, planning a wall full of Elf-on-the-Shelf ideas"
+            fill
+            priority
+            className="object-cover object-[75%_50%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/80 to-[#020617]/10" />
+        </div>
 
-    {/* Overlay: strong on the left for copy, much lighter on the right */}
-    <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/80 to-[#020617]/10 md:to-transparent" />
-  </div>
-
+        {/* Mobile hero */}
+        <div className="sm:hidden absolute inset-0">
+          <Image
+            src="/elf_plan-mobile.png"
+            alt="Christmas elf in a cosy living room office, planning lots of elf ideas on a corkboard"
+            fill
+            priority
+            className="object-cover object-top"
+          />
+          {/* Darker at the bottom so text is readable */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#020617]/40 via-[#020617]/75 to-[#020617]/95" />
+        </div>
+      </div>
 
       {/* Content on top */}
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
