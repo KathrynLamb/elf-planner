@@ -68,7 +68,7 @@ export function HeroSection() {
       {/* Full-width background image */}
       <div className="absolute inset-0">
     <Image
-      src="/elf_kitchen.png"
+      src="/elf_plan3.png"
       alt="Elf and toys causing cosy Christmas mischief in a kitchen"
       fill
       priority
