@@ -54,27 +54,94 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    const materialsList = allMaterials.length
-      ? allMaterials.map((m) => `• ${m}`).join('\n')
-      : 'Your Elf needs no special materials — just a cosy home!';
+    const materialsListHtml = allMaterials.length
+      ? `<ul style="margin: 12px 0 0; padding-left: 20px;">
+          ${allMaterials
+            .map(
+              (m) =>
+                `<li style="margin-bottom:4px; line-height:1.5;">${m}</li>`
+            )
+            .join('')}
+        </ul>`
+      : `<p style="margin: 12px 0 0; line-height:1.6;">
+           Your Elf needs no special materials — just a cosy home!
+         </p>`;
 
     // ---- BUILD OVERVIEW EMAIL ----
     const introEmailHtml = `
-      <h1>Your Elf Plan is Ready 🎄</h1>
-      <p>Thanks for reviewing all 30 nights! Your Elf plan is now locked in.</p>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charSet="utf-8" />
+    <title>Your Elf plan is ready</title>
+  </head>
+  <body style="margin:0; padding:0; background:#020617; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:#e5e7eb;">
+    <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background:#020617; padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="max-width:640px; background:#020617; padding:0 16px;">
+            <tr>
+              <td style="padding:0 0 24px 0; text-align:center; color:#9ca3af; font-size:12px;">
+                Merry the Elf · Elf Planner
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#020617; border-radius:18px; padding:28px 24px 28px; border:1px solid #1f2937;">
+                <h1 style="margin:0 0 12px; font-size:24px; line-height:1.25; color:#f9fafb;">
+                  Your Elf plan is all wrapped up 🎄
+                </h1>
+                <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:#e5e7eb;">
+                  Thanks for reviewing your <strong>24-night Elf plan</strong>. From tonight onwards,
+                  Merry has your back – no more 11.30pm “I forgot the Elf” panic.
+                </p>
 
-      <h2>Monthly Materials Checklist</h2>
-      <pre style="font-size:14px; white-space:pre-wrap;">${materialsList}</pre>
+                <p style="margin:16px 0 6px; font-size:14px; font-weight:600; color:#f9fafb;">
+                  Elf season checklist
+                </p>
+                <p style="margin:0; font-size:13px; line-height:1.5; color:#e5e7eb;">
+                  Here are the simple bits and bobs that will be handy to have around this month
+                  (you don’t need everything at once – just a gentle heads-up):
+                </p>
+                ${materialsListHtml}
 
-      <p>You’ll receive a fresh Elf idea every morning starting tomorrow.</p>
-      <p>Love, Merry the Elf ✨</p>
+                <p style="margin:20px 0 8px; font-size:14px; line-height:1.6; color:#e5e7eb;">
+                  Each evening you’ll get a quick email with:
+                </p>
+                <ul style="margin:0 0 16px; padding-left:20px; font-size:13px; line-height:1.6; color:#e5e7eb;">
+                  <li>tonight’s Elf setup in clear, human language,</li>
+                  <li>a tiny note for your child to discover in the morning, and</li>
+                  <li>an easier “I’m exhausted” fallback option if the day’s gone sideways.</li>
+                </ul>
+
+                <p style="margin:0 0 4px; font-size:13px; line-height:1.5; color:#9ca3af;">
+                  You can reopen your full plan any time from your Elf Planner account.
+                </p>
+
+                <p style="margin:18px 0 0; font-size:13px; line-height:1.5; color:#e5e7eb;">
+                  With a sprinkle of chaos and a lot of kindness,<br/>
+                  <strong>Merry the Elf ✨</strong>
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 0 0; text-align:center; color:#6b7280; font-size:11px;">
+                You’re receiving this because you asked Merry to plan your Elf season.
+                If this wasn’t you, you can ignore this email.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
     `;
 
     // ---- SEND EMAIL ----
     await resend.emails.send({
       from: 'Merry the Elf <merry@elfontheshelf.uk>',
       to: session.userEmail,
-      subject: `Your Elf Plan is Ready for ${session.childName ?? 'your kiddo'} 🎄`,
+      subject: `Your Elf plan is ready for ${session.childName ?? 'your kiddo'} 🎄`,
       html: introEmailHtml,
     });
 
