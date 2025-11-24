@@ -56,7 +56,6 @@ export default function HomePage() {
     </main>
   );
 }
-
 export function HeroSection() {
   function scrollToSection(id: string) {
     const el = document.getElementById(id);
@@ -65,22 +64,26 @@ export function HeroSection() {
   }
 
   return (
-    <section
-      className="relative overflow-hidden"
-      style={{
-        backgroundImage: "url('/bg_blend.png')",
-        backgroundSize: 'cover',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right center',
-        backgroundColor: '#020617', // fallback midnight navy
-      }}
-    >
-      {/* Fade to midnight sky on the left for text */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#020617] via-[#020617] to-transparent" />
+    <section className="relative overflow-hidden min-h-[600px] flex items-center">
+      {/* Full-width background image */}
+      <div className="absolute inset-0">
+    <Image
+      src="/elf_kitchen.png"
+      alt="Elf and toys causing cosy Christmas mischief in a kitchen"
+      fill
+      priority
+      // bias the crop slightly to the right so the elf is off-centre
+      className="object-cover object-[70%_50%]"
+    />
 
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:flex-row lg:items-center">
-        {/* LEFT: copy */}
-        <div className="flex-1 text-center lg:text-left">
+    {/* Overlay: strong on the left for copy, much lighter on the right */}
+    <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/80 to-[#020617]/10 md:to-transparent" />
+  </div>
+
+
+      {/* Content on top */}
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#1B7D43]/80">
             Elf magic, without the mental load!
           </p>
@@ -97,7 +100,7 @@ export function HeroSection() {
             tailored to your time, mess tolerance, and family traditions.
           </p>
 
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:justify-start sm:gap-4">
+          <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={() => scrollToSection('mini-chat')}
@@ -115,7 +118,7 @@ export function HeroSection() {
             </button>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[11px] font-medium text-slate-200/80 sm:justify-start">
+          <div className="mt-3 flex flex-wrap items-start gap-2 text-[11px] font-medium text-slate-200/80">
             <span>One-off $14.99 · Pay securely via PayPal</span>
             <span className="hidden sm:inline">•</span>
             <span>No subscriptions, no upsells</span>
@@ -123,34 +126,11 @@ export function HeroSection() {
             <span>Tiny 2-minute ideas or big show-stoppers – you choose</span>
           </div>
         </div>
-
-        {/* RIGHT: video */}
-        <div className="flex-1 flex justify-center">
-          <div className="relative w-full max-w-sm">
-            {/* subtle glow around the video card */}
-            <div className="pointer-events-none absolute -inset-[3px] rounded-[32px] bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.55),transparent_55%),radial-gradient(circle_at_bottom,rgba(52,211,153,0.5),transparent_55%)] opacity-80" />
-
-            <div className="relative rounded-[30px] overflow-hidden bg-[#020617]/70 backdrop-blur-[1px] shadow-[0_25px_80px_rgba(0,0,0,0.9)]">
-              <video
-                className="block h-full w-full object-cover"
-                src="/elf_vid.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                // poster="/elf-hero-poster.jpg"
-              />
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* <p className="relative z-10 mt-2 pb-6 text-center text-[11px] text-slate-300/80">
-        A real example of the Merry-style Elf you’ll meet in your plan.
-      </p> */}
     </section>
   );
 }
+
 
 function HowItWorksSection() {
   const steps = [
@@ -167,7 +147,7 @@ function HowItWorksSection() {
     {
       number: '3',
       title: 'Unlock the full plan with PayPal',
-      body: 'Preview a mini plan for free. When you’re ready, pay securely via PayPal to unlock your full 30-night plan, view it online, or download a printer-friendly PDF.',
+      body: 'Preview a mini plan for free. When you’re ready, pay securely via PayPal to unlock your full 24-night plan, view it online, or download a printer-friendly PDF.',
     },
   ];
 
@@ -235,7 +215,7 @@ function AiPreviewSection() {
           </li>
           <li className="flex items-start gap-2">
             <MessageCircle className="mt-0.5 h-4 w-4 text-emerald-300" />
-            <span>Only pay if you want the full 30-night plan.</span>
+            <span>Only pay if you want the full 24-night plan.</span>
           </li>
         </ul>
 
@@ -300,7 +280,7 @@ function AiPreviewSection() {
                   rhyme.
                 </li>
               </ul>
-              Want me to spin the full 30-night plan?
+              Want me to spin the full 24-night plan?
             </ElfBubble>
           </div>
         </div>
@@ -351,7 +331,7 @@ function WhatYouGetSection() {
     },
     {
       title: 'One simple price',
-      body: 'Your whole month of personalised Elf plans and nightly reminder emails for £9, paid securely via PayPal. No subscriptions, no upsells, no faff.',
+      body: 'Your whole month of personalised Elf plans and nightly reminder emails for $14.99, paid securely via PayPal. No subscriptions, no upsells, no faff.',
     },
   ];
 
@@ -362,7 +342,7 @@ function WhatYouGetSection() {
     >
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-slate-50 md:text-2xl">
-          What you get for £9
+          What you get for £14.99
         </h2>
         <p className="max-w-2xl text-sm text-slate-300">
           Everything you need for a magical, manageable Elf season – and
@@ -450,7 +430,7 @@ function FaqSection() {
     },
     {
       q: 'When do I pay?',
-      a: 'You can chat to Merry and see a free mini preview first. You only pay via PayPal when you decide to unlock your full 30-night plan.',
+      a: 'You can chat to Merry and see a free mini preview first. You only pay via PayPal when you decide to unlock your full 24-night plan.',
     },
     {
       q: 'Is this just a generic list?',

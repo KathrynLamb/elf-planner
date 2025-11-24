@@ -100,7 +100,7 @@ export type InferredElfProfile = {
 
   bannedProps: string[];
   availableProps: string[];
-
+  humourTone: string;
   notesForElf: string;
 };
 

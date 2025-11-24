@@ -367,7 +367,7 @@ export default function SuccessClient() {
         <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-4 sm:p-5 lg:p-6">
           <div className="mb-4">
             <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 flex items-center gap-2 text-slate-50">
-              <span>🎄 Your 30-Night Elf Plan</span>
+              <span>🎄 Your 24-Night Elf Plan</span>
             </h2>
 
             {plan.planOverview && (
@@ -652,7 +652,7 @@ export default function SuccessClient() {
           
               <h1 className="mb-2 text-2xl font-semibold md:text-3xl">
                 {hasPlanObject
-                  ? `Here’s ${elfSession?.childName ? `${elfSession.childName}’s` : 'your'} 30-night Elf plan 🎄`
+                  ? `Here’s ${elfSession?.childName ? `${elfSession.childName}’s` : 'your'} 24-night Elf plan 🎄`
                   : `Let’s make an Elf plan that perfectly fits ${elfSession?.childName ? elfSession.childName : 'your kiddo'} 🎄`}
               </h1>
 
@@ -748,7 +748,7 @@ export default function SuccessClient() {
                   {hotlineDone ? (
                     <p className="text-emerald-300">
                       Merry has everything she needs – next up is brewing your
-                      30-night plan.
+                      24-night plan.
                     </p>
                   ) : (
                     <p>
@@ -775,7 +775,7 @@ export default function SuccessClient() {
                         Next up
                       </p>
                       <h2 className="text-sm font-semibold md:text-base">
-                        Brew your 30-morning Elf plan
+                        Brew your 24-morning Elf plan
                       </h2>
                     </div>
                   </div>
@@ -803,7 +803,7 @@ export default function SuccessClient() {
                       ? 'Finish or skip the hotline to unlock'
                       : sessionLoading || !elfSession
                       ? 'Loading your Elf details…'
-                      : 'Generate my 30-morning Elf plan'}
+                      : 'Generate my 24-morning Elf plan'}
                   </button>
 
                   <p className="text-[11px] text-slate-400">

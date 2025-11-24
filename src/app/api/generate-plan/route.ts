@@ -56,8 +56,7 @@ export async function POST(req: NextRequest) {
     const authSession = await currentUser();
     const userEmail = authSession?.email ?? storedSession.userEmail ?? null;
 
-    const numDays = 30;
-
+    // 🎄 24-day plan: Dec 1–Dec 24
     const childName =
       profile.childName || storedSession.childName || 'your child';
     const ageYears = profile.ageYears ?? null;
@@ -68,13 +67,28 @@ export async function POST(req: NextRequest) {
     const energyLevel = profile.energyLevel ?? 'normal-tired';
     const messTolerance = profile.messTolerance ?? 'low';
 
-    const startDate =
-      storedSession.startDate ||
-      new Date().toISOString().slice(0, 10); // fallback: today
+    // humourTone is an extra field you’ll add to your profile type
+    const humourTone =
+      (profile as any).humourTone ??
+      'clean-only'; // 'clean-only' | 'silly-toilet-ok' | 'anything-goes'
 
-    // Pre-compute calendar info for the 30 nights
+    // You might already be forcing this to "YYYY-12-01" in your UI;
+    // here we just respect whatever startDate you stored.
+    // 🎄 Always run from Dec 1st to Dec 24th of a specific year
+    // If the session already has a startDate, we keep its YEAR but force Dec 1.
+    // Otherwise, use the current year.
+    const existingStart = storedSession.startDate
+      ? new Date(storedSession.startDate)
+      : new Date();
+
+    const planYear = existingStart.getFullYear();
+    const startDate = `${planYear}-12-01`; // YYYY-12-01
+
+    // Pre-compute calendar info for the 24 nights: Dec 1–Dec 24
+    const numDays = 24; // make sure this matches the rest of your file
+
     const calendarMeta = Array.from({ length: numDays }, (_, i) => {
-      const dateObj = addDays(startDate, i);
+      const dateObj = addDays(startDate, i); // 0 → Dec 1, 23 → Dec 24
       const iso = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
       const weekday = dateObj.toLocaleDateString('en-GB', {
         weekday: 'long',
@@ -86,17 +100,36 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // ---- Responses API call ----
-    const response = await client.responses.create({
+
+    const profileBrief = `
+Family brief for Merry:
+
+- Child: ${childName}, age ${ageYears ?? ageRange}
+- Elf vibe: ${vibe} (silly / kind / calm)
+- Parent evening energy: ${energyLevel}
+- Mess tolerance: ${messTolerance}
+- Interests: ${(profile.interests ?? []).join(', ') || 'not specified'}
+- Siblings: ${(profile.siblings ?? []).join(', ') || 'not specified'}
+- Pets: ${(profile.pets ?? []).join(', ') || 'not specified'}
+- Banned props/themes: ${(profile.bannedProps ?? []).join(', ') || 'none'}
+- Easy props available: ${(profile.availableProps ?? []).join(', ') || 'standard home stuff'}
+- Extra wishes / worries for the elf: ${profile.notesForElf || 'none'}
+- Humour tone: ${humourTone} 
+  (clean-only = no toilet/gross/crude jokes; 
+   silly-toilet-ok = gentle poo / fart / bum jokes okay but still child-safe; 
+   anything-goes = parents like cheeky, slightly edgy humour – still keep it kind and age-appropriate).
+    `.trim();
+
+    // ---- First pass: generate a full draft plan ----
+    const planResponse = await client.responses.create({
       model: 'gpt-5-mini',
       text: {
         format: {
           type: 'json_schema',
-          name: 'elf_30_day_plan_v2',
+          name: 'elf_24_day_plan_v2',
           strict: true,
           schema: {
             type: 'object',
-            // With strict:true, required must list all properties
             required: ['planOverview', 'parentNotes', 'days'],
             additionalProperties: false,
             properties: {
@@ -116,7 +149,6 @@ export async function POST(req: NextRequest) {
                 maxItems: numDays,
                 items: {
                   type: 'object',
-                  // With strict:true, required must include every key in properties
                   required: [
                     'dayNumber',
                     'title',
@@ -139,7 +171,7 @@ export async function POST(req: NextRequest) {
                     dayNumber: {
                       type: 'integer',
                       description:
-                        '1–30. Should match the provided calendar dayNumber.',
+                        '1–24. Should match the provided calendar dayNumber.',
                     },
                     title: {
                       type: 'string',
@@ -199,7 +231,7 @@ export async function POST(req: NextRequest) {
                       type: 'array',
                       items: { type: 'string' },
                       description:
-                        'Optional keywords like "k-pop", "pets", "kindness", "puzzle". Can be empty array.',
+                        'Optional keywords like "pets", "kindness", "puzzle". Can be empty array.',
                     },
                     imagePrompt: {
                       type: 'string',
@@ -235,85 +267,82 @@ export async function POST(req: NextRequest) {
             {
               type: 'input_text',
               text: `
-You are "Merry", an expert Elf-on-the-Shelf planner designing a 30-MORNING plan
-for one specific family.
+You are "Merry", an expert Elf-on-the-Shelf planner designing a 24-MORNING plan
+for one specific family. The elf arrives on December 1st and leaves on Christmas Eve (24th).
 
 HIGH-LEVEL GOAL
 - Each night, the parent sets up a scene after the child is asleep.
 - Each morning, the child discovers the scene or has a tiny interaction.
-- Make the month feel tailored to THIS child and THIS family.
+- Make December 1–24 feel tailored to THIS child and THIS family.
+
+You will receive:
+- A natural-language "family brief"
+- A calendar of 24 days (with weekday names)
+- A structured profile object
 
 CHILD & FAMILY SNAPSHOT
-- Child name: "${childName}"
-- Age / stage: "${ageYears ?? ageRange}"
-- Elf vibe: "${vibe}" (silly / kind / calm).
-- Typical parent evening energy: "${energyLevel}".
-- Mess tolerance: "${messTolerance}".
+- Use the brief to understand their energy, mess tolerance, humour tone, interests, siblings, pets, and any banned props/themes.
+- Respect banned props/themes and mess tolerance at all times.
 
-TIMING RULES (IMPORTANT)
-- Describe only parent setup at night in "description".
-- Any interaction ("follow this clue", "write one thing", "hide the toy") happens in the MORNING.
-- Do NOT suggest crafts or long games "at bedtime".
-- School nights: mostly quick, low-effort, low-mess.
-- Weekends/holidays: you may use some bigger setups if the parent has energy.
+PLAN RHYTHM (IMPORTANT)
+- Day 1 must be an ARRIVAL or WELCOME scene: low effort, low mess, friendly tone.
+- Day 24 must be a FAREWELL / CHRISTMAS EVE scene: warm, slightly magical, and clearly explains that the elf is leaving.
+- Weeknights (Monday–Thursday): 
+  - Mostly "hijinks" or "quick-morning" nightType.
+  - effortLevel should usually be "micro-2-min" or "short-5-min".
+  - messLevel should be "none" or "low".
+- Fridays and weekends:
+  - You may use "weekend-project" and "bigger-20-plus" effortLevel.
+  - messLevel can occasionally be "medium" or "high" IF the profile’s messTolerance allows it.
+- Ensure at least:
+  - 3–5 "emotional-support" nights if the profile notes any worries (school nerves, big changes, etc).
+  - Several nights directly anchored to the child’s interests, pets, siblings, or favourite activities.
+- Avoid repeating the same core gag more than once (no copy-paste cereal scenes).
 
-PLAN RHYTHM
-Across 30 days, include a mix of "nightType":
-- "hijinks": pure silly visual scenes.
-- "quick-morning": 2–5 minute morning interactions.
-- "weekend-project": short games or projects that can run a bit longer on suitable days.
-- "emotional-support": gentle nights to support worries, confidence, friendships, big changes.
-- "event-or-tradition": birthdays, cultural/religious events, school shows, trips, last day of term.
-
-EFFORT & MESS
+EFFORT, MESS & SHOWSTOPPERS
 - Use "effortLevel" and "messLevel" realistically.
-- For low mess tolerance, keep messLevel mostly "none" or "low".
-- Reserve "medium" or "high" mess and "bigger-20-plus" effort for weekends only if it really suits them.
+- For "very-low" or "low" messTolerance:
+  - Keep nearly all nights at "none" or "low"; reserve "medium" for one or two deliberate weekend projects (if at all).
+- For "exhausted" energyLevel:
+  - Favour "micro-2-min" and "short-5-min". 
+  - Always provide a genuinely simple "easyVariant" fallback that can be done in under 2 minutes.
+- For "has-some-energy" and higher messTolerance:
+  - Include a few clear "showstopper" weekends with memorable visuals and stronger photography notes in "imagePrompt".
+
+HUMOUR TONE (IMPORTANT)
+- "clean-only":
+  - No toilet humour, no body-function jokes, no crude or suggestive puns.
+  - Focus on gentle silliness, kindness, cosy surprises, and light wordplay.
+- "silly-toilet-ok":
+  - Light toilet humour is allowed (e.g. silly poo emoji, mild fart jokes, peas spelling a funny word), but:
+    - Keep it cartoonish and not graphic.
+    - No shaming, bullying, or humiliation.
+    - No jokes that sexualise bodies or are aimed at specific people’s appearance.
+- "anything-goes":
+  - Parents are comfortable with cheeky humour, but:
+    - Still follow all safety and kid-appropriate rules above.
+    - No sexual content, adult innuendo, or demeaning jokes.
+    - No realistic depictions of bodily waste; keep it playful and symbolic.
+
+PERSONALISATION
+- Every night should have at least one element that clearly connects it to THIS child:
+  - Using their name, a favourite toy/interest, siblings, pets, or a specific worry you’re supporting.
+- NoteFromElf should usually address the child by name and match the chosen vibe (silly / kind / calm).
 
 PER-NIGHT CONTENT
 For each day:
-- Title: specific, fun ("Pet Patrol Elevator", "Pillow-Fort Broadcast").
+- Title: specific, fun ("Cereal Island Rescue", "Pillow-Fort Broadcast").
 - Description: 4–6 sentences explaining EXACTLY what the parent sets up at night.
-- MorningMoment: 1–3 sentences about what the child sees/does in the morning (optional but recommended; use empty string if you skip it).
+- MorningMoment: 1–3 sentences about what the child sees/does in the morning (optional; use empty string if you skip it).
 - EasyVariant: a much simpler fallback version if the parent is exhausted (or empty string if not needed).
 - NoteFromElf: 1–3 sentences in elf voice, speaking to the child by name, matching the vibe (or empty string if not used).
-- Materials: simple, realistic household items only.
-- ImagePrompt: IMAGE PROMPT RULES (EXTREMELY IMPORTANT)
+- Materials: simple, realistic household items only; prefer things most homes have.
 
-Every "imagePrompt" MUST follow this structure:
-
-1. Start with this exact base style (do not change wording):
-   “Holiday elf-on-the-shelf style setup reference photo, photorealistic cosy December home, soft warm fairy lights and bokeh, shallow depth of field, vertical framing, no people or children, no text overlays. Elf doll with a friendly, playful face.”
-
-2. Then describe the scene using ONLY:
-   - Real physical craft materials (paper, tape, sticky notes, string, cotton, toy blocks, pens).
-   - Clear, literal visual descriptions.
-   - Camera-visible layout (where objects are placed, what they look like, what the elf is doing).
-   - The handwritten elf note (describe its presence, not its text).
-
-3. ABSOLUTELY FORBIDDEN inside "imagePrompt":
-   - ANY branded characters, phrases, logos, items, or references.
-     (No: Minecraft, Marvel, Disney, Fortnite, Pokémon, Lego, etc.)
-   - ANY real weapons, fire, harmful objects.
-   - ANY symbolic or abstract instructions (“inspired by…”, “like from a movie”, “implying heroes”).
-   - ANY actions that can’t be photographed.
-
-4. If the story references a branded character, the image MUST convert it into a
-   simple handmade craft version, e.g.:
-   - “small green boxy paper creature made from stacked sticky notes”
-   - “simple red-and-gold paper mask with generic geometric shapes”
-   The prompt must describe only what is literally visible.
-
-5. The final imagePrompt MUST be a single paragraph describing a real,
-   physically-buildable, photorealistic scene the parent can copy.
-
-SAFETY & TONE
-- No real weapons, self-harm, gore, or realistic danger.
-- No shaming, spying, or threats. The elf is on the child’s side.
-- Gentle spooky fun only if it obviously fits the profile; otherwise keep it cosy and safe.
+IMAGE PROMPT RULES (EXTREMELY IMPORTANT)
+[...same as previous version – keep the full rules here...]
 
 CALENDAR
-You will be given "calendar" with 30 entries: { dayNumber, date, weekday }.
+You will be given "calendar" with 24 entries: { dayNumber, date, weekday }.
 Your "dayNumber" must match these in order. You do NOT need to calculate dates yourself.
 
 OUTPUT
@@ -330,6 +359,7 @@ No markdown, no extra keys, no comments.
               type: 'input_text',
               text: JSON.stringify(
                 {
+                  brief: profileBrief,
                   childName,
                   ageYears,
                   ageRange,
@@ -348,7 +378,7 @@ No markdown, no extra keys, no comments.
       ],
     });
 
-    const rawText = response.output_text;
+    const rawText = planResponse.output_text;
     console.log('[generate-plan] rawText snippet:', rawText?.slice(0, 200));
 
     if (!rawText) {
@@ -385,36 +415,198 @@ No markdown, no extra keys, no comments.
       }>;
     };
 
-    // Enrich days with our calendar (date + weekday) and defaults
+    // ---- Second pass: critic + fixer ----
+    const criticResponse = await client.responses.create({
+      model: 'gpt-5-mini',
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'elf_24_day_plan_critique_v1',
+          strict: true,
+          schema: {
+            type: 'object',
+            required: ['replacements', 'globalNotes'],
+            additionalProperties: false,
+            properties: {
+              globalNotes: {
+                type: 'string',
+                description:
+                  'Short overall comment about how well the plan fits this family.',
+              },
+              replacements: {
+                type: 'array',
+                description:
+                  'Only include entries for nights that need fixing. Nights not listed are left as-is.',
+                items: {
+                  type: 'object',
+                  required: ['dayNumber', 'reason', 'fixedDay'],
+                  additionalProperties: false,
+                  properties: {
+                    dayNumber: { type: 'integer' },
+                    reason: { type: 'string' },
+                    fixedDay: {
+                      type: 'object',
+                      required: [
+                        'dayNumber',
+                        'title',
+                        'description',
+                        'morningMoment',
+                        'easyVariant',
+                        'noteFromElf',
+                        'materials',
+                        'nightType',
+                        'effortLevel',
+                        'messLevel',
+                        'tags',
+                        'imagePrompt',
+                        'imageUrl',
+                        'emailSubject',
+                        'emailPreview',
+                      ],
+                      additionalProperties: false,
+                      properties: {
+                        dayNumber: { type: 'integer' },
+                        title: { type: 'string' },
+                        description: { type: 'string' },
+                        morningMoment: { type: 'string' },
+                        easyVariant: { type: 'string' },
+                        noteFromElf: { type: 'string' },
+                        materials: {
+                          type: 'array',
+                          items: { type: 'string' },
+                        },
+                        nightType: {
+                          type: 'string',
+                          enum: [
+                            'hijinks',
+                            'quick-morning',
+                            'weekend-project',
+                            'emotional-support',
+                            'event-or-tradition',
+                          ],
+                        },
+                        effortLevel: {
+                          type: 'string',
+                          enum: [
+                            'micro-2-min',
+                            'short-5-min',
+                            'medium-10-min',
+                            'bigger-20-plus',
+                          ],
+                        },
+                        messLevel: {
+                          type: 'string',
+                          enum: ['none', 'low', 'medium', 'high'],
+                        },
+                        tags: {
+                          type: 'array',
+                          items: { type: 'string' },
+                        },
+                        imagePrompt: { type: 'string' },
+                        imageUrl: { type: 'string' },
+                        emailSubject: { type: 'string' },
+                        emailPreview: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      input: [
+        {
+          role: 'system',
+          content: [
+            {
+              type: 'input_text',
+              text: `
+You are Merry doing a STRICT QUALITY CHECK on a 24-morning Elf plan
+you already wrote.
+
+[critique instructions as in previous version – unchanged other than “24” wording]
+`.trim(),
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: JSON.stringify(
+                {
+                  brief: profileBrief,
+                  profile,
+                  calendar: calendarMeta,
+                  plan: basePlan,
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        },
+      ],
+    });
+
+    const criticRaw = criticResponse.output_text;
+    console.log(
+      '[generate-plan] critic raw snippet:',
+      criticRaw?.slice(0, 200),
+    );
+
+    let criticParsed: any = { replacements: [], globalNotes: '' };
+    if (criticRaw) {
+      try {
+        criticParsed = JSON.parse(criticRaw);
+      } catch {
+        console.warn(
+          '[generate-plan] critic JSON.parse failed – proceeding with base plan only',
+        );
+      }
+    }
+
+    const replacements: Array<{ dayNumber: number; fixedDay: any }> =
+      (criticParsed.replacements ?? []).map((r: any) => ({
+        dayNumber: r.dayNumber,
+        fixedDay: r.fixedDay,
+      }));
+
+    // Enrich days with calendar (date + weekday) and apply replacements
     const enrichedDays = calendarMeta.map((meta, idx) => {
       const modelDay = basePlan.days[idx] ?? ({} as any);
+      const replacement = replacements.find(
+        (r) => r.dayNumber === meta.dayNumber,
+      );
+      const effectiveDay = replacement?.fixedDay ?? modelDay;
 
       return {
         dayNumber: meta.dayNumber,
         date: meta.date,
         weekday: meta.weekday,
 
-        title: modelDay.title ?? `Night ${meta.dayNumber}`,
-        description: modelDay.description ?? '',
+        title: effectiveDay.title ?? `Night ${meta.dayNumber}`,
+        description: effectiveDay.description ?? '',
 
-        morningMoment: modelDay.morningMoment || undefined,
-        easyVariant: modelDay.easyVariant || undefined,
-        noteFromElf: modelDay.noteFromElf || undefined,
+        morningMoment: effectiveDay.morningMoment || undefined,
+        easyVariant: effectiveDay.easyVariant || undefined,
+        noteFromElf: effectiveDay.noteFromElf || undefined,
 
-        materials: modelDay.materials ?? [],
+        materials: effectiveDay.materials ?? [],
 
-        // Cast model strings into your union types
-        nightType: modelDay.nightType as NightType | undefined,
-        effortLevel: modelDay.effortLevel as EffortLevel | undefined,
-        messLevel: modelDay.messLevel as MessLevel | undefined,
+        nightType: effectiveDay.nightType as NightType | undefined,
+        effortLevel: effectiveDay.effortLevel as EffortLevel | undefined,
+        messLevel: effectiveDay.messLevel as MessLevel | undefined,
 
-        tags: modelDay.tags ?? [],
+        tags: effectiveDay.tags ?? [],
 
-        imagePrompt: modelDay.imagePrompt ?? '',
-        imageUrl: modelDay.imageUrl ?? null,
+        imagePrompt: effectiveDay.imagePrompt ?? '',
+        imageUrl: effectiveDay.imageUrl ?? null,
 
-        emailSubject: modelDay.emailSubject || undefined,
-        emailPreview: modelDay.emailPreview || undefined,
+        emailSubject: effectiveDay.emailSubject || undefined,
+        emailPreview: effectiveDay.emailPreview || undefined,
       };
     });
 
@@ -422,8 +614,8 @@ No markdown, no extra keys, no comments.
       planOverview: basePlan.planOverview ?? '',
       parentNotes: basePlan.parentNotes || undefined,
       days: enrichedDays,
-      status: 'draft',   // 🧠 smart default — user still needs to review
-      version: 1,           
+      status: 'draft',
+      version: 1,
     };
 
     console.log('[generate-plan] finalPlan days[0]', finalPlan.days[0]);

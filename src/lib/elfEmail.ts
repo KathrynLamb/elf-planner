@@ -10,7 +10,7 @@ export function buildElfEmailHtml(args: {
   };
   imageUrl?: string | null;
 }) {
-  const { childName, planOverview, day, imageUrl } = args;
+  const { childName, day, imageUrl } = args;
 
   return `
 <!DOCTYPE html>
@@ -59,13 +59,11 @@ export function buildElfEmailHtml(args: {
                       <h1 style="margin:0 0 6px; font-size:24px; line-height:1.3; color:#151628;">
                         Here’s tonight’s Elf idea for ${childName}
                       </h1>
-                      ${
-                        planOverview
-                          ? `<p style="margin:0 0 18px; font-size:14px; line-height:1.6; color:#6b6f85;">
-                               ${planOverview}
-                             </p>`
-                          : ''
-                      }
+                      
+                      <h2 style="margin:8px 0 8px; font-size:18px; line-height:1.4; color:#151628;">
+                      ${(day.weekday ?? '').trim()}${day.weekday ? ' · ' : ''}${day.title}
+                    </h2>
+
 
                       ${
                         imageUrl
@@ -79,14 +77,9 @@ export function buildElfEmailHtml(args: {
                           : ''
                       }
 
-                      <p style="margin:0 0 14px; font-size:15px; line-height:1.6; color:#2b2d42;">
-                        Hi! I’m Merry, ${childName}’s silly little elf friend. Each night I’ll bring a gentle, low-mess idea to make bedtime feel calm, cozy, and a little bit magical.
-                      </p>
+                    
 
-                      <h2 style="margin:8px 0 8px; font-size:18px; line-height:1.4; color:#151628;">
-                        ${(day.weekday ?? '').trim()}${day.weekday ? ' · ' : ''}${day.title}
-                      </h2>
-
+                  
                       <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#2b2d42; white-space:pre-line;">
                         ${day.description}
                       </p>

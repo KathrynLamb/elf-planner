@@ -29,7 +29,7 @@ export default function WhatYouGetSection() {
           id="what-you-get-title"
           className="text-center text-lg font-semibold text-slate-50 md:text-xl"
         >
-          What you get for £9
+          What you get for $14.99
         </h2>
         <div className="mx-auto max-w-3xl space-y-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-5 text-sm">
           <ul className="space-y-2 text-slate-200">

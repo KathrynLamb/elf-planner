@@ -187,7 +187,7 @@ export function MiniChatSection() {
               </p>
               <p className="mb-3 text-xs text-slate-200 sm:text-sm">
                 Check out securely with PayPal and Merry will conjure your full
-                30-night Elf plan.
+                24-night Elf plan.
               </p>
               <GeneratePlanButton sessionId={sessionId} />
             </div>

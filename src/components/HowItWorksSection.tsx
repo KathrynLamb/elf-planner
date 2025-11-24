@@ -6,7 +6,7 @@ export default function HowItWorksSection() {
         body: 'Pop in your child’s name, age range, start date and Elf vibe (silly, kind or calm).',
       },
       {
-        title: '2. We conjure your 30-day plan',
+        title: '2. We conjure your 24-day plan',
         body: 'Our Elf Helper uses AI to spin up 30 nights of setups and short notes, tailored to your child and your dates.',
       },
       {

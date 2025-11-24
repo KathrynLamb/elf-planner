@@ -89,7 +89,7 @@ export default function PrivacyPage() {
           </h2>
           <p>I use your information to:</p>
           <ul className="ml-5 list-disc space-y-1 text-slate-300">
-            <li>Generate and deliver your personalised 30-day Elf plan.</li>
+            <li>Generate and deliver your personalised 24-day Elf plan.</li>
             <li>
               Send you your plan by email and provide optional nightly reminder
               emails.

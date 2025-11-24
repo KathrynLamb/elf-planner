@@ -167,7 +167,7 @@ export async function POST(req: Request) {
       purchase_units: [
         {
           reference_id: sessionId,
-          description: '30-day Elf-on-the-Shelf Plan',
+          description: '24-day Elf-on-the-Shelf Plan',
           amount: {
             currency_code: currency,
             value,
@@ -177,7 +177,7 @@ export async function POST(req: Request) {
           },
           items: [
             {
-              name: '30-day Elf-on-the-Shelf Plan',
+              name: '24-day Elf-on-the-Shelf Plan',
               quantity: '1',
               category: 'DIGITAL_GOODS',
               unit_amount: { currency_code: currency, value },

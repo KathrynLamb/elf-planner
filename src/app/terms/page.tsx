@@ -58,7 +58,7 @@ export default function TermsPage() {
             Service description
           </h2>
           <p>
-            Elf on the Shelf Helper provides a personalised 30-day Elf plan,
+            Elf on the Shelf Helper provides a personalised 24-day Elf plan,
             including nightly setup ideas and short &quot;notes&quot; from your
             Elf, tailored to the details you provide (such as your child&apos;s
             first name, age range, start date and Elf vibe).
@@ -79,8 +79,8 @@ export default function TermsPage() {
         <section className="mt-8 space-y-2 text-sm leading-relaxed text-slate-200">
           <h2 className="text-lg font-semibold text-slate-50">Pricing &amp; payment</h2>
           <p>
-            The current price for a 30-day Elf plan is clearly shown on the
-            checkout button (e.g. <span className="font-medium">£9</span>). This
+            The current price for a 24-day Elf plan is clearly shown on the
+            checkout button (e.g. <span className="font-medium">$14.99</span>). This
             is a <span className="font-medium">one-off payment</span> for a
             single personalised plan. There is no subscription.
           </p>

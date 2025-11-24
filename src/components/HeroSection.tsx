@@ -110,7 +110,7 @@ export default function HeroSection() {
           </h1>
           <p className="text-sm md:text-base text-slate-200">
             Merry the Elf will chat with you like a cosy hotline, then conjure a
-            personalised 30-day Elf plan: easy nightly setups, tiny notes from
+            personalised 24-day Elf plan: easy nightly setups, tiny notes from
             your elf, and almost no weekday mess. You just set things out at
             night.
           </p>
@@ -237,7 +237,7 @@ export default function HeroSection() {
                 </p>
                 <p className="text-[11px] text-slate-400">
                   Like the sound of that? Scroll down to see exactly what you
-                  get, then unlock the full 30-night plan.
+                  get, then unlock the full 24-night plan.
                 </p>
               </div>
             )}
@@ -246,7 +246,7 @@ export default function HeroSection() {
           {/* Auth / CTA card */}
           <div className="rounded-2xl bg-slate-950/70 border border-slate-800 px-4 py-4 md:px-5 md:py-5 space-y-4">
             <h2 className="text-sm font-semibold">
-              Ready for the full 30-night Elf planner?
+              Ready for the full 24-night Elf planner?
             </h2>
             <p className="text-xs text-slate-300">
               Sign in with a magic link to save your plan for next year, or

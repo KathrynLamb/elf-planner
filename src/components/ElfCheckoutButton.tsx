@@ -97,7 +97,7 @@ export function ElfCheckoutButton({
           'inline-flex w-full items-center justify-center gap-1 rounded-full bg-emerald-400 px-3 py-2 text-[11px] font-semibold text-slate-950 shadow-md shadow-emerald-400/30 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:shadow-none'
         }
       >
-        {loading ? 'Opening PayPal…' : 'Unlock my full 30-night Elf plan'}
+        {loading ? 'Opening PayPal…' : 'Unlock my full 24-night Elf plan'}
       </button>
       {error && (
         <p className="text-[10px] text-rose-300">

@@ -88,14 +88,14 @@ Do not include stage directions or labels.
   
   ${transcriptText}
   
-  Write ONE friendly paragraph that previews what their UNIQUE 30-night Elf plan will feel like.
+  Write ONE friendly paragraph that previews what their UNIQUE 24-night Elf plan will feel like.
   
   The paragraph should:
   - be 3–5 sentences
   - sound warm, encouraging and a bit cheeky (Merry's voice, but as narration, not spoken dialogue)
   - clearly set expectations: mostly low-effort, low-mess setups that fit their energy, with any bigger or messier moments saved for times they said were okay (eg weekends)
   - mention their energy level, mess tolerance, weekday vs weekend vibe, and ONE emotional goal for the child (eg feeling loved, calm, excited, confident)
-  - end with a line that hints: “next we’ll set up the basics and then Merry will conjure the full 30-night plan.”
+  - end with a line that hints: “next we’ll set up the basics and then Merry will conjure the full 24-night plan.”
   
   Do NOT include bullet points, headings or quotation marks – just a single paragraph.
   `,

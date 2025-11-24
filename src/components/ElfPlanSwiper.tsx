@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Heart, RefreshCw } from 'lucide-react';
 import SwapFeedbackModal from './SwapFeedbackModal'; // if you have it here
 
@@ -254,16 +254,6 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
         />
       )}
 
-{index === internalDays.length - 1 && (
-  <div className="mt-6">
-    <button
-      onClick={handleCommit}
-      className="w-full bg-emerald-500 text-slate-950 rounded-xl py-3 font-semibold shadow-md shadow-emerald-600/20 hover:bg-emerald-400 transition"
-    >
-      I’m happy — email me my plan 🎄
-    </button>
-  </div>
-)}
 
     </div>
   );

@@ -9,7 +9,7 @@ export default function SamplePlanPreview() {
           Peek at a sample Elf plan
         </h2>
         <p className="text-center text-xs text-slate-300">
-          Here’s a little taste of what a 30-day Elf plan looks like (this example is for a
+          Here’s a little taste of what a 24-day Elf plan looks like (this example is for a
           “Silly” Elf vibe, age 4–6):
         </p>
   

@@ -1,5 +1,10 @@
 // src/app/api/elf-mini-chat/route.ts
-import { ElfVibe, InferredElfProfile, getElfSession, patchElfSession } from '@/lib/elfStore';
+import {
+  ElfVibe,
+  InferredElfProfile,
+  getElfSession,
+  patchElfSession,
+} from '@/lib/elfStore';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
@@ -53,8 +58,8 @@ export async function POST(req: NextRequest) {
               profile: {
                 type: 'object',
                 description:
-                  'Best-guess profile of the child, parent energy, and practical constraints, based ONLY on this conversation.',
-                // 🔧 STRICT MODE: must list *all* keys in `required`
+                  'Best-guess profile of the child, parent energy, humour tolerance, and practical constraints, based ONLY on this conversation.',
+                // STRICT MODE: must list *all* keys in `required`
                 required: [
                   'childName',
                   'ageYears',
@@ -65,6 +70,7 @@ export async function POST(req: NextRequest) {
                   'interests',
                   'energyLevel',
                   'messTolerance',
+                  'humourTone',      // ⭐ NEW
                   'bannedProps',
                   'availableProps',
                   'notesForElf',
@@ -97,6 +103,11 @@ export async function POST(req: NextRequest) {
                     type: 'string',
                     enum: ['very-low', 'low', 'medium', 'high'],
                   },
+                  // ⭐ NEW: humour boundaries for gross/cheeky/toilet jokes
+                  humourTone: {
+                    type: 'string',
+                    enum: ['clean-only', 'silly-toilet-ok', 'anything-goes'],
+                  },
                   bannedProps: {
                     type: 'array',
                     items: { type: 'string' },
@@ -126,17 +137,26 @@ export async function POST(req: NextRequest) {
               type: 'input_text',
               text: `
 You are "Merry", a warm, cheeky Elf-on-the-Shelf planner talking to a parent
-in an introductory chat on a website about developing a comprehensive elf-on-the-shelf plan to make their christmas both effortless and magically delightful.
+in an introductory chat on a website about developing a comprehensive elf-on-the-shelf plan to make their Christmas both effortless and magically delightful.
 
 Your job:
-1) Reply as Merry with a short, tempting preview of their 30-night plan, how you would structure it specifically for their and their child of children's unique needs and interests.
-2) Quietly infer a structured profile of the child or children and the parent’s constraints.
+1) Reply as Merry with a short, tempting preview of their 24-morning plan, how you would structure it specifically for their and their child or children's unique needs and interests.
+2) Quietly infer a structured profile of the child or children and the parent’s constraints, including their HUMOUR BOUNDARIES.
 
 Important:
-- Use only what the parent has actually said so far. If you’re not sure, leave fields vague or default.
+- Use only what the parent has actually said so far. If you’re not sure, leave fields vague or pick the gentlest default.
 - Never invent sensitive or scary issues. Keep everything light, kind, and family-safe.
 - If the parent hasn’t said a child name, you may call them "your kiddo" in your *reply*,
   but in the profile leave childName empty.
+
+Humour boundaries ("humourTone"):
+- "clean-only": keep everything cosy and clean; NO toilet/gross/crude jokes.
+- "silly-toilet-ok": light toilet humour is fine (silly poo/fart/bum jokes), but keep it cartoonish and not mean.
+- "anything-goes": parents are happy with cheekier, slightly crass humour, but you must still stay child-safe:
+   no sexual content, no humiliation, no realistic bodily waste.
+
+If you are NOT sure which humourTone fits, you should treat this as missing information and ask a single, clear question like:
+"Do you prefer the elf to keep things totally clean and cosy, or are you happy with the odd silly toilet joke?"
 
 Existing stored profile (may be empty or partial):
 ${existingProfile ? JSON.stringify(existingProfile, null, 2) : '(none yet)'}
@@ -148,8 +168,9 @@ ${JSON.stringify(messages, null, 2)}
 
 Based on this:
 - If key profile fields are missing → ask a simple follow-up question.
+  Key fields include: age/ageRange, general December vibe, interests,
+  energy level, mess tolerance, and humourTone.
 - If enough data exists → generate the preview.
-
 
 Known top-level session fields:
 - Child name (may be generic): ${childName}
@@ -161,7 +182,8 @@ Conversation flow rules:
 Merry should behave like a warm, helpful Elf PA who asks natural questions before giving the preview.
 
 Rules:
-1. If Merry does NOT yet know enough about the child/family (name, age, general December vibe, interests, energy level, mess tolerance), she should ask ONE gentle follow-up question instead of giving a preview.
+1. If Merry does NOT yet know enough about the child/family (name, age, general December vibe, interests, energy level, mess tolerance, HUMOUR TONE),
+   she should ask ONE gentle follow-up question instead of giving a preview.
 
 2. If the parent replies to a follow-up question, Merry may ask up to TWO more clarification questions — but never overwhelm. Keep it natural and short.
 
@@ -185,6 +207,7 @@ Merry MUST NOT produce a preview if:
 - No age info is known
 - No vibe/energy/mess tolerance inferred
 - No interests OR no emotional context
+- OR humourTone is still unknown.
 
 Return ONLY JSON that matches the schema.
             `.trim(),
@@ -202,8 +225,7 @@ Return ONLY JSON that matches the schema.
                   lastMessage: messages[messages.length - 1],
                 },
                 null,
-                2,
-              ),
+                2),
             },
           ],
         },
@@ -222,6 +244,7 @@ Return ONLY JSON that matches the schema.
         ageYears?: number | null;
         ageRange?: string | null;
         vibe?: ElfVibe | null;
+        humourTone?: 'clean-only' | 'silly-toilet-ok' | 'anything-goes' | null;
       };
     };
 
@@ -244,6 +267,12 @@ Return ONLY JSON that matches the schema.
         p.energyLevel ?? existingProfile?.energyLevel ?? 'normal-tired',
       messTolerance:
         p.messTolerance ?? existingProfile?.messTolerance ?? 'low',
+
+      // ⭐ NEW: merge humourTone with a gentle default
+      humourTone:
+        (p as any).humourTone ??
+        (existingProfile as any)?.humourTone ??
+        'clean-only',
 
       bannedProps: p.bannedProps ?? existingProfile?.bannedProps ?? [],
       availableProps:
