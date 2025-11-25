@@ -43,6 +43,8 @@ export const elfSessions = pgTable('elf_sessions', {
   paypalSessionId: text('paypal_session_id'),
   stripeSessionId: text('stripe_session_id'),
 
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+
   childName: text('child_name'),
   ageRange: text('age_range'),
   ageYears: text('age_years'),
