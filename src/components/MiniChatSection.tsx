@@ -32,7 +32,6 @@ export function MiniChatSection() {
   const [hasPreview, setHasPreview] = React.useState(false);
   const [isThinking, setIsThinking] = React.useState(false);
 
-  // scroll container for messages (the thing that should scroll, not the whole page)
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
 
   // Always keep view pinned to the latest message
@@ -44,7 +43,7 @@ export function MiniChatSection() {
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim()) return;
 
     const text = input.trim();
     const userMessage: ChatMessage = {
@@ -99,40 +98,48 @@ export function MiniChatSection() {
   return (
     <section
       id="mini-chat"
-      className="relative w-full bg-slate-950 px-4 pb-10 pt-12 sm:px-6 sm:pb-16 sm:pt-16"
+      className={`
+        relative w-full bg-slate-950
+        /* mobile: make this feel like a full-screen chat view */
+        min-h-screen
+      `}
     >
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        {/* Heading */}
-        <header className="text-center space-y-2">
-          <h2 className="text-3xl font-bold text-white sm:text-4xl">
-            Try a free mini chat with Merry
-          </h2>
-          <p className="mx-auto max-w-2xl text-sm text-slate-300 sm:text-base">
-            Type one or two sentences about your kid and December. Merry will
-            reply with a tiny preview of a few Elf mornings she&apos;d plan just
-            for you.
+      {/* Visually hidden heading just for accessibility / SEO */}
+      <h2 className="sr-only">Free mini chat with Merry the Elf</h2>
+
+      <div
+        className={`
+          mx-auto flex w-full max-w-2xl flex-col
+          /* mobile: full height chat container */
+          h-[calc(100vh-80px)]
+          px-0
+          /* desktop/tablet: add breathing room  */
+          sm:h-auto sm:max-w-4xl sm:px-4 sm:py-12
+        `}
+      >
+        {/* Optional small heading on desktop only */}
+        <header className="mb-4 hidden text-center sm:block">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-300">
+            Free taste of your Elf plan
+          </p>
+          <p className="mt-1 text-sm text-slate-300">
+            Chat with Merry like a messenger app and see a tiny preview before
+            you buy anything.
           </p>
         </header>
 
-        {/* Chat shell – designed to feel like a real chat app, especially on mobile */}
+        {/* Chat “app” container */}
         <div
-          className="
-            relative mx-auto flex w-full max-w-2xl flex-col
-            rounded-3xl border border-slate-800/80 bg-slate-900/80
+          className={`
+            flex flex-1 flex-col
+            rounded-none border-y border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950
             shadow-[0_24px_80px_rgba(15,23,42,0.9)]
-            overflow-hidden
-            h-[min(540px,calc(100vh-10rem))]
-            sm:h-auto sm:min-h-[420px]
-          "
+            sm:rounded-3xl sm:border sm:px-4 sm:py-4
+          `}
         >
-          {/* subtle twinkle background */}
-          <div className="pointer-events-none absolute inset-0 opacity-35 mix-blend-screen">
-            <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.25),_transparent_55%)]" />
-          </div>
-
-          {/* Chat header like Messenger */}
-          <div className="relative z-10 flex items-center gap-3 border-b border-slate-800/70 bg-slate-950/80 px-4 py-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 to-rose-500 shadow-md" />
+          {/* Top bar, like a chat app header */}
+          <div className="flex items-center gap-3 border-b border-slate-800/70 px-4 py-3 sm:px-0">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 to-pink-500" />
             <div className="flex flex-col text-left">
               <span className="text-sm font-semibold text-slate-50">
                 Merry the Elf
@@ -143,14 +150,14 @@ export function MiniChatSection() {
             </div>
           </div>
 
-          {/* Messages scroll area */}
+          {/* Messages area */}
           <div
             ref={chatScrollRef}
-            className="
-              relative z-10 flex-1 overflow-y-auto
-              px-3 py-4 sm:px-4 sm:py-5
-              space-y-3
-            "
+            className={`
+              flex-1 space-y-3 overflow-y-auto
+              px-3 py-4
+              sm:px-4 sm:py-5
+            `}
           >
             {messages.map((m) => (
               <div
@@ -164,7 +171,7 @@ export function MiniChatSection() {
                 <div
                   className={
                     m.role === "assistant"
-                      ? "max-w-[80%] rounded-2xl bg-slate-800/95 px-4 py-3 text-left text-sm text-slate-50"
+                      ? "max-w-[80%] rounded-2xl bg-slate-800/90 px-4 py-3 text-left text-sm text-slate-50"
                       : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40"
                   }
                 >
@@ -173,10 +180,9 @@ export function MiniChatSection() {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {isThinking && (
               <div className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/95 px-3 py-2 text-[11px] text-slate-200">
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/90 px-3 py-2 text-[11px] text-slate-200">
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0.12s]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-600 [animation-delay:0.24s]" />
@@ -186,62 +192,51 @@ export function MiniChatSection() {
             )}
           </div>
 
-          {/* Input bar – sticks to bottom of chat card, like Messenger */}
+          {/* Error */}
+          {error && (
+            <p className="px-4 text-xs text-rose-300 sm:px-0 sm:text-sm">
+              {error}
+            </p>
+          )}
+
+          {/* Input row – sits at the bottom like Messenger */}
           <form
             onSubmit={handleSend}
-            className="
-              relative z-10 border-t border-slate-800/70 bg-slate-950/90
-              px-3 py-3 sm:px-4
-            "
+            className={`
+              mt-2 flex items-center gap-2 border-t border-slate-800/70
+              bg-slate-900/95 px-3 py-3
+              sm:rounded-b-3xl sm:px-4
+            `}
           >
-            <div className="flex items-center gap-2">
-              <input
-                className="
-                  flex-1 rounded-full border border-emerald-400/60
-                  bg-slate-900/95 px-4 py-3 text-sm text-white
-                  placeholder:text-slate-500
-                  focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60
-                "
-                placeholder="Tell Merry about your kid and December…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="
-                  rounded-full bg-emerald-400 px-5 py-2.5
-                  text-sm font-semibold text-slate-950
-                  shadow-lg shadow-emerald-400/40
-                  transition hover:bg-emerald-300
-                  disabled:cursor-not-allowed disabled:opacity-60
-                "
-              >
-                Send
-              </button>
-            </div>
-
-            {error && (
-              <p className="mt-2 text-[11px] text-rose-300 sm:text-xs">
-                {error}
-              </p>
-            )}
+            <input
+              className="flex-1 rounded-full border border-emerald-400/60 bg-slate-950/90 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
+              placeholder="Tell Merry about your kid and December…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="rounded-full bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Send
+            </button>
           </form>
-        </div>
 
-        {/* Upsell once they’ve seen a preview */}
-        {hasPreview && (
-          <div className="mx-auto w-full max-w-2xl rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-4 text-left text-sm text-slate-100">
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-              Ready to get your full plan?
-            </p>
-            <p className="mb-3 text-xs text-slate-200 sm:text-sm">
-              Check out securely with PayPal and Merry will conjure your full
-              24-night Elf plan.
-            </p>
-            <GeneratePlanButton sessionId={sessionId} />
-          </div>
-        )}
+          {/* Upsell once they’ve seen a preview */}
+          {hasPreview && (
+            <div className="border-t border-slate-800/70 bg-slate-900/95 px-4 py-3 text-left text-sm text-slate-100 sm:rounded-b-3xl">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+                Ready to get your full plan?
+              </p>
+              <p className="mb-3 text-xs text-slate-200 sm:text-sm">
+                Check out securely with PayPal and Merry will conjure your full
+                24-night Elf plan.
+              </p>
+              <GeneratePlanButton sessionId={sessionId} />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
