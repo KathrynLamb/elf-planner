@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { StoredElfPlan } from '@/lib/elfStore';
 import ElfPlanSwiper from '@/components/ElfPlanSwiper';
+import { SiteFooter } from '../SiteFooter';
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
 
@@ -853,47 +854,8 @@ export default function SuccessClient() {
           )}
         </section>
 
-        {/* NIGHTLY REMINDER SIGNUP (optional – still commented) */}
-        {/*
-        <section className="space-y-3 rounded-3xl border border-slate-800 bg-slate-900/80 p-6 md:p-7">
-          <h3 className="text-sm font-semibold">
-            Get nightly Elf email reminders
-          </h3>
-          <p className="text-xs text-slate-300">
-            I can email you each morning with that day&apos;s Elf idea, so you
-            don&apos;t have to remember to open this page when you&apos;re
-            tired.
-          </p>
-
-          <form
-            onSubmit={handleEmailReminder}
-            className="flex flex-col gap-2 sm:flex-row sm:items-center"
-          >
-            <input
-              type="email"
-              required
-              placeholder="you@example.com"
-              value={reminderEmail}
-              onChange={(e) => setReminderEmail(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-950"
-            >
-              Save email reminders
-            </button>
-          </form>
-
-          {reminderErr && (
-            <p className="text-[11px] text-red-400">{reminderErr}</p>
-          )}
-          {reminderMsg && (
-            <p className="text-[11px] text-emerald-300">{reminderMsg}</p>
-          )}
-        </section>
-        */}
       </div>
+      <SiteFooter />
     </main>
   );
 }
