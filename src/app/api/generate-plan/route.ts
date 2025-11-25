@@ -9,9 +9,6 @@ import {
   EffortLevel,
   MessLevel,
 } from '@/lib/elfStore';
-import { db } from '@/lib/db';
-import { elfSessions } from '@/lib/schema';
-import { eq } from 'drizzle-orm';
 import { currentUser } from '@/lib/currentUser';
 
 export const runtime = 'nodejs';
@@ -75,9 +72,7 @@ export async function POST(req: NextRequest) {
       (profile as any).humourTone ??
       'clean-only'; // 'clean-only' | 'silly-toilet-ok' | 'anything-goes'
 
-    // You might already be forcing this to "YYYY-12-01" in your UI;
-    // here we just respect whatever startDate you stored.
-    // 🎄 Always run from Dec 1st to Dec 24th of a specific year
+    // Always run from Dec 1st to Dec 24th of a specific year.
     // If the session already has a startDate, we keep its YEAR but force Dec 1.
     // Otherwise, use the current year.
     const existingStart = storedSession.startDate
@@ -88,7 +83,7 @@ export async function POST(req: NextRequest) {
     const startDate = `${planYear}-12-01`; // YYYY-12-01
 
     // Pre-compute calendar info for the 24 nights: Dec 1–Dec 24
-    const numDays = 24; // make sure this matches the rest of your file
+    const numDays = 24;
 
     const calendarMeta = Array.from({ length: numDays }, (_, i) => {
       const dateObj = addDays(startDate, i); // 0 → Dec 1, 23 → Dec 24
@@ -102,7 +97,6 @@ export async function POST(req: NextRequest) {
         weekday,
       };
     });
-
 
     const profileBrief = `
 Family brief for Merry:
@@ -633,61 +627,6 @@ you already wrote.
       plan: finalPlan,
       planGeneratedAt: Date.now(),
     });
-
-    await patchElfSession(sessionId, {
-      childName,
-      ageRange,
-      ageYears,
-      startDate,
-      vibe,
-      userEmail,
-      plan: finalPlan,
-      planGeneratedAt: Date.now(),
-    });
-
-    // 🔽 NEW: mirror into Postgres elf_sessions for durable storage
-    try {
-      const userId = authSession?.id ?? null;
-
-      await db
-        .insert(elfSessions)
-        .values({
-          id: sessionId,                     // use same UUID as the Redis session
-          userId,                            // may be null if they haven't logged in yet
-          childName,
-          ageRange,
-          ageYears: ageYears != null ? String(ageYears) : null,
-          vibe,
-          startDate,
-          inferredProfile: profile,
-          plan: finalPlan,
-          planGeneratedAt: new Date(),
-          reminderEmail: userEmail ?? null,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: elfSessions.id,
-          set: {
-            userId,
-            childName,
-            ageRange,
-            ageYears: ageYears != null ? String(ageYears) : null,
-            vibe,
-            startDate,
-            inferredProfile: profile,
-            plan: finalPlan,
-            planGeneratedAt: new Date(),
-            reminderEmail: userEmail ?? null,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (err) {
-      console.error('[generate-plan] failed to persist elf_sessions row', err);
-      // don't throw – the user still gets their plan even if DB mirror fails
-    }
-
-    return NextResponse.json({ plan: finalPlan });
-
 
     return NextResponse.json({ plan: finalPlan });
   } catch (error: any) {
