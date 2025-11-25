@@ -1,16 +1,13 @@
-// src/components/MiniChatSection.tsx
-"use client";
-
-import * as React from "react";
 import { GeneratePlanButton } from "./GeneratePlanButton";
-
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+import * as React from "react";
 
 export function MiniChatSection() {
+  type ChatMessage = {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+  };
+
   const [sessionId] = React.useState(() => {
     if (typeof window === "undefined") return "";
     const existing = window.localStorage.getItem("elf-mini-session-id");
@@ -35,9 +32,10 @@ export function MiniChatSection() {
   const [hasPreview, setHasPreview] = React.useState(false);
   const [isThinking, setIsThinking] = React.useState(false);
 
+  // scroll container for messages (the thing that should scroll, not the whole page)
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
 
-  // keep view pinned to the latest message
+  // Always keep view pinned to the latest message
   React.useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
@@ -101,143 +99,149 @@ export function MiniChatSection() {
   return (
     <section
       id="mini-chat"
-      className="relative flex w-full items-center justify-center bg-slate-950 px-4 pb-28 pt-12 sm:px-6 sm:pb-16 sm:pt-16"
+      className="relative w-full bg-slate-950 px-4 pb-10 pt-12 sm:px-6 sm:pb-16 sm:pt-16"
     >
-      {/* twinkly background */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[url('/twinkle.png')] bg-cover bg-center opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/95 to-slate-950" />
-      </div>
-
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 lg:flex-row lg:items-start">
-        {/* Text intro */}
-        <header className="w-full max-w-xl text-center lg:text-left">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        {/* Heading */}
+        <header className="text-center space-y-2">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
             Try a free mini chat with Merry
           </h2>
-          <p className="mt-3 text-sm text-slate-300 sm:text-base">
+          <p className="mx-auto max-w-2xl text-sm text-slate-300 sm:text-base">
             Type one or two sentences about your kid and December. Merry will
             reply with a tiny preview of a few Elf mornings she&apos;d plan just
             for you.
           </p>
         </header>
 
-        {/* Chat column */}
-        <div className="relative w-full max-w-md">
-          {/* Chat bubble area */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-950/80 shadow-[0_24px_80px_rgba(15,23,42,0.9)]">
-            <div className="flex items-center gap-2 border-b border-slate-800 bg-slate-900/90 px-4 py-3">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 via-rose-500 to-amber-400 shadow-md" />
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-slate-50">
-                  Merry the Elf
-                </span>
-                <span className="text-[11px] text-emerald-300">
-                  Typically replies in seconds
-                </span>
-              </div>
-            </div>
+        {/* Chat shell – designed to feel like a real chat app, especially on mobile */}
+        <div
+          className="
+            relative mx-auto flex w-full max-w-2xl flex-col
+            rounded-3xl border border-slate-800/80 bg-slate-900/80
+            shadow-[0_24px_80px_rgba(15,23,42,0.9)]
+            overflow-hidden
+            h-[min(540px,calc(100vh-10rem))]
+            sm:h-auto sm:min-h-[420px]
+          "
+        >
+          {/* subtle twinkle background */}
+          <div className="pointer-events-none absolute inset-0 opacity-35 mix-blend-screen">
+            <div className="h-full w-full bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.25),_transparent_55%)]" />
+          </div>
 
-            <div
-              ref={chatScrollRef}
-              className="flex max-h-[420px] min-h-[260px] flex-col space-y-3 overflow-y-auto px-3 pb-4 pt-3 sm:px-4 sm:pt-4 sm:pb-5"
-            >
-              {messages.map((m) => (
+          {/* Chat header like Messenger */}
+          <div className="relative z-10 flex items-center gap-3 border-b border-slate-800/70 bg-slate-950/80 px-4 py-3">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-400 to-rose-500 shadow-md" />
+            <div className="flex flex-col text-left">
+              <span className="text-sm font-semibold text-slate-50">
+                Merry the Elf
+              </span>
+              <span className="text-[11px] text-emerald-300">
+                Typically replies in seconds
+              </span>
+            </div>
+          </div>
+
+          {/* Messages scroll area */}
+          <div
+            ref={chatScrollRef}
+            className="
+              relative z-10 flex-1 overflow-y-auto
+              px-3 py-4 sm:px-4 sm:py-5
+              space-y-3
+            "
+          >
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={
+                  m.role === "assistant"
+                    ? "flex justify-start"
+                    : "flex justify-end"
+                }
+              >
                 <div
-                  key={m.id}
                   className={
                     m.role === "assistant"
-                      ? "flex justify-start"
-                      : "flex justify-end"
+                      ? "max-w-[80%] rounded-2xl bg-slate-800/95 px-4 py-3 text-left text-sm text-slate-50"
+                      : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40"
                   }
                 >
-                  <div
-                    className={
-                      m.role === "assistant"
-                        ? "max-w-[80%] rounded-2xl rounded-tl-sm bg-slate-800/95 px-4 py-2.5 text-left text-[13px] leading-relaxed text-slate-50 shadow-md shadow-black/30"
-                        : "max-w-[80%] rounded-2xl rounded-tr-sm bg-emerald-400 px-4 py-2.5 text-right text-[13px] leading-relaxed text-slate-950 shadow-md shadow-emerald-500/40"
-                    }
-                  >
-                    {m.content}
-                  </div>
+                  {m.content}
                 </div>
-              ))}
-
-              {isThinking && (
-                <div className="flex justify-start">
-                  <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-sm bg-slate-800/95 px-3 py-2 text-[11px] text-slate-200 shadow-md shadow-black/30">
-                    <span className="flex gap-1">
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0.12s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-600 [animation-delay:0.24s]" />
-                    </span>
-                    <span>Merry is thinking…</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop / tablet input (inside card) */}
-            <form
-              onSubmit={handleSend}
-              className="hidden items-center gap-2 border-t border-slate-800 bg-slate-900/95 px-4 py-3 sm:flex"
-            >
-              <div className="flex-1 rounded-full border border-slate-700 bg-slate-950/90 px-4 py-2 text-[13px] text-white shadow-inner shadow-slate-900/70">
-                <input
-                  className="w-full bg-transparent text-[13px] text-white placeholder:text-slate-500 focus:outline-none"
-                  placeholder="Tell Merry about your kid and December…"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                />
               </div>
+            ))}
+
+            {/* Typing indicator */}
+            {isThinking && (
+              <div className="flex justify-start">
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/95 px-3 py-2 text-[11px] text-slate-200">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0.12s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-600 [animation-delay:0.24s]" />
+                  <span>Merry is thinking…</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input bar – sticks to bottom of chat card, like Messenger */}
+          <form
+            onSubmit={handleSend}
+            className="
+              relative z-10 border-t border-slate-800/70 bg-slate-950/90
+              px-3 py-3 sm:px-4
+            "
+          >
+            <div className="flex items-center gap-2">
+              <input
+                className="
+                  flex-1 rounded-full border border-emerald-400/60
+                  bg-slate-900/95 px-4 py-3 text-sm text-white
+                  placeholder:text-slate-500
+                  focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60
+                "
+                placeholder="Tell Merry about your kid and December…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="inline-flex h-9 min-w-[70px] items-center justify-center rounded-full bg-emerald-400 px-4 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="
+                  rounded-full bg-emerald-400 px-5 py-2.5
+                  text-sm font-semibold text-slate-950
+                  shadow-lg shadow-emerald-400/40
+                  transition hover:bg-emerald-300
+                  disabled:cursor-not-allowed disabled:opacity-60
+                "
               >
                 Send
               </button>
-            </form>
-          </div>
-
-          {/* Upsell */}
-          {hasPreview && (
-            <div className="mt-5 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-4 text-left text-sm text-slate-100">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-                Ready to get your full plan?
-              </p>
-              <p className="mb-3 text-xs text-slate-200 sm:text-sm">
-                Check out securely with PayPal and Merry will conjure your full
-                24-night Elf plan.
-              </p>
-              <GeneratePlanButton sessionId={sessionId} />
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Mobile input bar fixed to bottom like Messenger */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-800 bg-slate-950/95 px-3 py-2 sm:hidden">
-        <form
-          onSubmit={handleSend}
-          className="mx-auto flex w-full max-w-md items-center gap-2"
-        >
-          <div className="flex-1 rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-[13px] text-white shadow-inner shadow-slate-900/70">
-            <input
-              className="w-full bg-transparent text-[13px] text-white placeholder:text-slate-500 focus:outline-none"
-              placeholder="Tell Merry about your kid and December…"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-            />
+            {error && (
+              <p className="mt-2 text-[11px] text-rose-300 sm:text-xs">
+                {error}
+              </p>
+            )}
+          </form>
+        </div>
+
+        {/* Upsell once they’ve seen a preview */}
+        {hasPreview && (
+          <div className="mx-auto w-full max-w-2xl rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-4 text-left text-sm text-slate-100">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
+              Ready to get your full plan?
+            </p>
+            <p className="mb-3 text-xs text-slate-200 sm:text-sm">
+              Check out securely with PayPal and Merry will conjure your full
+              24-night Elf plan.
+            </p>
+            <GeneratePlanButton sessionId={sessionId} />
           </div>
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="inline-flex h-9 min-w-[70px] items-center justify-center rounded-full bg-emerald-400 px-4 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Send
-          </button>
-        </form>
+        )}
       </div>
     </section>
   );

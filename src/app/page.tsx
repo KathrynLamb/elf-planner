@@ -45,7 +45,7 @@ export default function HomePage() {
         <HeroSection />
         <MiniChatSection />
         <HowItWorksSection />
-        <WhoItIsForSection />
+        {/* <WhoItIsForSection /> */}
         <SiteFooter />
       {/* </div> */}
     </main>

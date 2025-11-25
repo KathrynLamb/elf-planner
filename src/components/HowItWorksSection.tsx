@@ -12,23 +12,23 @@ export function HowItWorksSection() {
     },
     {
       number: "3",
-      title: "You just copy tonight’s idea",
-      body: "Each night you get a tiny, clear prompt for what to set up after bedtime so you can stop doom-scrolling Pinterest at 11.30pm.",
+      title: "You copy tonight’s idea after bedtime",
+      body: "Each morning you’ll get an email with that evening’s Elf setup and note, so you’ve got all day to grab any bits you need and then set it up in 2–10 minutes.",
     },
   ];
 
   const benefits = [
     {
-      title: "Tonight’s plan in your inbox",
-      body: "A clear, step-by-step Elf setup plus what your child will discover in the morning, ready when you finally sit down.",
+      title: "Tonight’s plan in your inbox (each morning)",
+      body: "A clear, step-by-step Elf setup plus what your child will discover in the morning, sent at the start of the day so you’re never scrambling for materials at 11.30pm.",
     },
     {
       title: "Truly personalised to your family",
-      body: "Merry weaves in your kid’s name, age, passions, siblings and December chaos level so it feels like your Elf, not a generic list.",
+      body: "Merry weaves in your kid’s name, age, passions, siblings and December chaos level so it feels like your Elf, not a generic list from Pinterest.",
     },
     {
       title: "Fits your energy and mess tolerance",
-      body: "Choose between micro 2-minute ideas, quick 5-minute setups, or the odd big weekend show-stopper – always with low-mess options.",
+      body: "Choose between micro 2-minute ideas, quick 5-minute setups, or the odd big weekend show-stopper – always with low-mess options and an emergency “I’m wiped” fallback.",
     },
   ];
 
@@ -39,7 +39,7 @@ export function HowItWorksSection() {
     >
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-slate-50 md:text-2xl">
-          How Merry works (in about three minutes)
+          How it works (and what you actually get)
         </h2>
         <p className="max-w-2xl text-sm text-slate-300">
           Designed for one-handed, late-night parents. No crafting degree
@@ -47,12 +47,12 @@ export function HowItWorksSection() {
         </p>
       </div>
 
-      {/* Steps */}
+      {/* Steps row */}
       <div className="grid gap-6 md:grid-cols-3">
         {steps.map((step) => (
           <div
             key={step.number}
-            className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-5"
+            className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-5"
           >
             <div className="flex items-center gap-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/15 text-xs font-semibold text-emerald-300">
@@ -67,34 +67,19 @@ export function HowItWorksSection() {
         ))}
       </div>
 
-      {/* What you get – condensed */}
-      <div className="space-y-3 pt-2">
-        <h3 className="text-sm font-semibold text-slate-50 md:text-base">
-          What you get for $14.99
-        </h3>
-        <p className="max-w-2xl text-xs text-slate-300 md:text-sm">
-          A whole Elf season you don’t have to think up from scratch – from
-          arrival to Christmas Eve.
-        </p>
-
-        <div className="grid gap-5 md:grid-cols-3">
-          {benefits.map((item) => (
-            <div
-              key={item.title}
-              className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-5"
-            >
-              <h4 className="text-sm font-semibold text-slate-50">
-                {item.title}
-              </h4>
-              <p className="text-xs text-slate-300">{item.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="pt-1 text-[11px] text-slate-400">
-          One simple price, paid securely via PayPal. No subscriptions, no
-          upsells, no faff.
-        </p>
+      {/* Benefits row */}
+      <div className="grid gap-5 md:grid-cols-3">
+        {benefits.map((item) => (
+          <div
+            key={item.title}
+            className="flex flex-col gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-5"
+          >
+            <h3 className="text-sm font-semibold text-slate-50">
+              {item.title}
+            </h3>
+            <p className="text-xs text-slate-300">{item.body}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
