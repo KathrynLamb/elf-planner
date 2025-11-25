@@ -9,6 +9,9 @@ import {
   EffortLevel,
   MessLevel,
 } from '@/lib/elfStore';
+import { db } from '@/lib/db';
+import { elfSessions } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
 import { currentUser } from '@/lib/currentUser';
 
 export const runtime = 'nodejs';
@@ -630,6 +633,61 @@ you already wrote.
       plan: finalPlan,
       planGeneratedAt: Date.now(),
     });
+
+    await patchElfSession(sessionId, {
+      childName,
+      ageRange,
+      ageYears,
+      startDate,
+      vibe,
+      userEmail,
+      plan: finalPlan,
+      planGeneratedAt: Date.now(),
+    });
+
+    // 🔽 NEW: mirror into Postgres elf_sessions for durable storage
+    try {
+      const userId = authSession?.id ?? null;
+
+      await db
+        .insert(elfSessions)
+        .values({
+          id: sessionId,                     // use same UUID as the Redis session
+          userId,                            // may be null if they haven't logged in yet
+          childName,
+          ageRange,
+          ageYears: ageYears != null ? String(ageYears) : null,
+          vibe,
+          startDate,
+          inferredProfile: profile,
+          plan: finalPlan,
+          planGeneratedAt: new Date(),
+          reminderEmail: userEmail ?? null,
+          updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: elfSessions.id,
+          set: {
+            userId,
+            childName,
+            ageRange,
+            ageYears: ageYears != null ? String(ageYears) : null,
+            vibe,
+            startDate,
+            inferredProfile: profile,
+            plan: finalPlan,
+            planGeneratedAt: new Date(),
+            reminderEmail: userEmail ?? null,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (err) {
+      console.error('[generate-plan] failed to persist elf_sessions row', err);
+      // don't throw – the user still gets their plan even if DB mirror fails
+    }
+
+    return NextResponse.json({ plan: finalPlan });
+
 
     return NextResponse.json({ plan: finalPlan });
   } catch (error: any) {
