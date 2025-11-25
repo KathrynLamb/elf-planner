@@ -70,7 +70,7 @@ export function HeroSection() {
         {/* Desktop / tablet hero */}
         <div className="hidden sm:block absolute inset-0">
           <Image
-            src="/elf_plan-desktop.png"
+            src="/elf_plan4.png"
             alt="Christmas elf working at a tiny desk, planning a wall full of Elf-on-the-Shelf ideas"
             fill
             priority
@@ -106,11 +106,9 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-4 max-w-xl text-base text-slate-200/95 sm:text-lg">
-            Every evening, Merry emails you a simple, personalised Elf-on-the-Shelf
-            setup to do after bedtime – plus a tiny note for your child to discover
-            in the morning. Built for knackered parents, kind to sensitive kids, and
-            tailored to your time, mess tolerance, and family traditions.
-          </p>
+              Every night, I'll email you a 2–10 minute Elf setup and tiny note,
+              personalised to your kid, your energy, and your mess tolerance.
+            </p>
 
           <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:gap-4">
             <button
@@ -118,16 +116,16 @@ export function HeroSection() {
               onClick={() => scrollToSection('mini-chat')}
               className="inline-flex items-center justify-center rounded-xl bg-[#DD3A33] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#DD3A33]/70"
             >
-              Meet Merry and get your plan
+              Get your plan
             </button>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => scrollToSection('what-you-get')}
               className="text-sm font-medium text-slate-100 underline-offset-4 hover:underline"
             >
               See a sample night
-            </button>
+            </button> */}
           </div>
 
           <div className="mt-3 flex flex-wrap items-start gap-2 text-[11px] font-medium text-slate-200/80">
@@ -487,7 +485,7 @@ function FaqSection() {
 function SiteFooter() {
   return (
     <footer className="flex flex-col items-start justify-between gap-4 border-t border-slate-800 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center">
-      <p>© {new Date().getFullYear()} Elf Planner. Made for knackered parents.</p>
+      <p>© {new Date().getFullYear()} Elf Planner. Wonder Without Worry</p>
       <div className="flex flex-wrap gap-4">
         <span className="text-slate-500">Secure checkout with PayPal.</span>
         <Link href="#faq" className="hover:text-slate-300">
