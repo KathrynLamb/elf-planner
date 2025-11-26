@@ -5,6 +5,12 @@ import { users, loginTokens, sessions } from '@/lib/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { getElfSession } from '@/lib/elfStore';
 
+function toTrimmedString(value: unknown): string {
+  if (typeof value === 'string') return value.trim();
+  if (value == null) return '';
+  return String(value).trim();
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get('token');
@@ -66,6 +72,8 @@ export async function GET(req: Request) {
     return homeResponse;
   }
 
+  const profile = (storedSession as any).inferredProfile ?? {};
+
   // 6) Decide if they’ve already paid
   const hasPaid =
     Boolean((storedSession as any).paypalSessionId) ||
@@ -86,27 +94,25 @@ export async function GET(req: Request) {
   } else {
     // ❌ Not paid yet → create PayPal order and send them straight to PayPal
 
-    const profile = (storedSession as any).inferredProfile ?? {};
-
     const childName =
-      (storedSession.childName || '').trim() ||
-      (profile.childName || '').trim() ||
+      toTrimmedString((storedSession as any).childName) ||
+      toTrimmedString(profile.childName) ||
       'your child';
 
     const ageRange =
-      (storedSession.ageRange || '').trim() ||
-      (profile.ageRange || '').trim() ||
+      toTrimmedString((storedSession as any).ageRange) ||
+      toTrimmedString(profile.ageRange) ||
       '4–6 years';
 
     const year = new Date().getFullYear();
     const startDate =
-      (storedSession.startDate || '').trim() ||
-      (profile.startDate || '').trim() ||
+      toTrimmedString((storedSession as any).startDate) ||
+      toTrimmedString(profile.startDate) ||
       `${year}-12-01`;
 
     const vibe =
-      ((storedSession as any).vibe || '').trim() ||
-      (profile.vibe || '').trim() ||
+      toTrimmedString((storedSession as any).vibe) ||
+      toTrimmedString(profile.vibe) ||
       'silly';
 
     console.log('[verify] PayPal details', {
