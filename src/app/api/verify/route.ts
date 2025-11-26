@@ -54,7 +54,6 @@ export async function GET(req: Request) {
   const storedSession = await getElfSession(sessionId).catch(() => null);
 
   if (!storedSession) {
-    // We genuinely don't know this session id – bail out nicely
     const homeResponse = NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_BASE_URL}/?error=no-elf-session`,
     );
@@ -69,11 +68,10 @@ export async function GET(req: Request) {
 
   // 6) Decide if they’ve already paid
   const hasPaid =
-    // paypalSessionId might exist in the stored JSON even if it's not in the TS type
     Boolean((storedSession as any).paypalSessionId) ||
     Boolean(storedSession.plan && storedSession.plan.status === 'final');
 
-  // Build a reliable base URL (same pattern as in your PayPal route)
+  // Build a reliable base URL
   const reqUrl = new URL(req.url);
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
@@ -88,11 +86,36 @@ export async function GET(req: Request) {
   } else {
     // ❌ Not paid yet → create PayPal order and send them straight to PayPal
 
-    const childName = storedSession.childName ?? 'your child';
-    const ageRange = storedSession.ageRange ?? '4–6 years';
+    const profile = (storedSession as any).inferredProfile ?? {};
+
+    const childName =
+      (storedSession.childName || '').trim() ||
+      (profile.childName || '').trim() ||
+      'your child';
+
+    const ageRange =
+      (storedSession.ageRange || '').trim() ||
+      (profile.ageRange || '').trim() ||
+      '4–6 years';
+
+    const year = new Date().getFullYear();
     const startDate =
-      storedSession.startDate ?? `${new Date().getFullYear()}-12-01`;
-    const vibe = (storedSession as any).vibe || 'silly';
+      (storedSession.startDate || '').trim() ||
+      (profile.startDate || '').trim() ||
+      `${year}-12-01`;
+
+    const vibe =
+      ((storedSession as any).vibe || '').trim() ||
+      (profile.vibe || '').trim() ||
+      'silly';
+
+    console.log('[verify] PayPal details', {
+      sessionId,
+      childName,
+      ageRange,
+      startDate,
+      vibe,
+    });
 
     const amount = 14.99;
     const currency: 'GBP' | 'USD' | 'EUR' = 'GBP';
