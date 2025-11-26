@@ -53,6 +53,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const allChildNames = [
+      profile.childName || storedSession.childName || '',
+      ...(profile.siblings ?? []),
+    ]
+      .map((n) => (n || '').trim())
+      .filter(Boolean);
+    
+    const childNamesLine =
+      allChildNames.length === 0
+        ? 'unnamed kid(s)'
+        : allChildNames.join(', ');
+    
+
     const authSession = await currentUser();
     const userEmail = authSession?.email ?? storedSession.userEmail ?? null;
 
@@ -101,7 +114,7 @@ export async function POST(req: NextRequest) {
     const profileBrief = `
 Family brief for Merry:
 
-- Child: ${childName}, age ${ageYears ?? ageRange}
+- Children: ${childNamesLine}, age ${ageYears ?? ageRange}
 - Elf vibe: ${vibe} (silly / kind / calm)
 - Parent evening energy: ${energyLevel}
 - Mess tolerance: ${messTolerance}

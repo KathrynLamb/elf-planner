@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { StoredElfPlan } from '@/lib/elfStore';
 import ElfPlanSwiper from '@/components/ElfPlanSwiper';
 import { SiteFooter } from '../SiteFooter';
+import { getChildrenNames } from '@/lib/getChildrenNames';
 
 type ElfVibe = 'silly' | 'kind' | 'calm';
 
@@ -49,6 +50,23 @@ export default function SuccessClient() {
   const [reminderMsg, setReminderMsg] = useState<null | string>(null);
 
   const [hydratedFromSession, setHydratedFromSession] = useState(false);
+
+
+    const names = getChildrenNames(elfSession);
+
+
+    let title: string;
+    if (names.length === 0) {
+      title = "Here’s your family’s 24-night Elf plan 🎄";
+    } else if (names.length === 1) {
+      title = `Here’s ${names[0]}’s 24-night Elf plan 🎄`;
+    } else if (names.length === 2) {
+      title = `Here’s ${names[0]} & ${names[1]}’s 24-night Elf plan 🎄`;
+    } else {
+      const last = names[names.length - 1];
+      const rest = names.slice(0, -1).join(', ');
+      title = `Here’s ${rest} & ${last}’s 24-night Elf plan 🎄`;
+    }
 
   // Derived helpers for plan shape
   const planObject =
@@ -352,8 +370,8 @@ export default function SuccessClient() {
 
               <h1 className="mb-2 text-2xl font-semibold md:text-3xl">
                 {hasPlanObject || plan
-                  ? `Here’s ${childLabel} 24-night Elf plan 🎄`
-                  : `Merry is brewing ${childLabel} Elf plan 🎄`}
+                  ? title
+                  : `Merry is brewing your Elf plan 🎄`}
               </h1>
 
               <div className="flex items-center justify-between gap-3">
