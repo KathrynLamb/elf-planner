@@ -54,7 +54,7 @@ export default function SuccessClient() {
   const [reminderErr, setReminderErr] = useState<null | string>(null);
   const [reminderMsg, setReminderMsg] = useState<null | string>(null);
 
-  // Keeping chat state in case we reuse it later, but UI is now hidden.
+  // Chat state kept for future reuse, but UI is hidden
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -68,11 +68,19 @@ export default function SuccessClient() {
     useState<MediaRecorder | null>(null);
   const [recordStartTime, setRecordStartTime] = useState<number | null>(null);
 
-  const hasPlanObject = Boolean(plan && typeof plan !== 'string');
-
   const chatRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Clear any stale mini-session ID to avoid pulling old data
+  // Derived helpers for plan shape
+  const planObject =
+    plan && typeof plan !== 'string' ? (plan as ElfPlanObject) : null;
+
+  const hasPlanObject =
+    !!planObject && Array.isArray(planObject.days) && planObject.days.length > 0;
+
+  const isBrewing =
+    !plan && (isLoading || sessionLoading || !hydratedFromSession);
+
+  // Clear any stale mini-session ID
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('elf-mini-session-id');
@@ -131,10 +139,8 @@ export default function SuccessClient() {
           return;
         }
 
-        // Clear stale local mini-session ID
         localStorage.removeItem('elf-mini-session-id');
 
-        // Set essential top-level fields
         setElfSession({
           sessionId: fullSession.sessionId,
           childName: fullSession.childName ?? 'your child',
@@ -143,14 +149,14 @@ export default function SuccessClient() {
           vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
         });
 
-        // Hydrate plan if present
+        // If the plan is already present in the session, hydrate it
         if (fullSession.plan) {
+          console.log('[Success page] hydrating existing plan from session');
           setPlan(fullSession.plan as PlanState);
         }
 
-        // Hydrate ONLY the Elf hotline transcript (no mini-chat replay)
+        // Hydrate hotline transcript (kept, but UI hidden)
         const hydrated: ChatMessage[] = [];
-
         if (Array.isArray(fullSession.hotlineTranscript)) {
           fullSession.hotlineTranscript.forEach((turn: any, idx: number) => {
             if (turn?.type === 'welcome') {
@@ -182,7 +188,6 @@ export default function SuccessClient() {
               return;
             }
 
-            // Legacy fallback
             if ('role' in (turn || {}) && 'content' in (turn || {})) {
               hydrated.push({
                 id: `hotline-${idx}`,
@@ -242,187 +247,10 @@ export default function SuccessClient() {
     };
   }, [sessionId]);
 
-  // -------- Voice hotline helpers (kept for future use) --------
-  async function startRecording() {
-    try {
-      if (!sessionId || isRecording) return;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-
-      const chunks: Blob[] = [];
-      const start = Date.now();
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-
-      recorder.onstop = () => {
-        const durationMs = Date.now() - start;
-        setRecordStartTime(null);
-
-        if (durationMs < 300) {
-          setError(
-            'That was super quick – hold the button and say a full sentence for Merry 😊',
-          );
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        void sendVoiceToHotline(chunks, stream);
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-      setRecordStartTime(start);
-    } catch (err) {
-      console.error('Error starting recording', err);
-      setError(
-        'I couldn’t access your microphone. Please check permissions or use the text box instead.',
-      );
-    }
-  }
-
-  function stopRecording() {
-    if (!mediaRecorder) return;
-    setIsRecording(false);
-    mediaRecorder.stop();
-  }
-
-  function speak(text: string) {
-    if (typeof window === 'undefined') return;
-    const synth = window.speechSynthesis;
-    if (!synth) return;
-
-    if (synth.speaking) synth.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = synth.getVoices();
-    const englishVoice =
-      voices.find((v) => v.lang?.toLowerCase().startsWith('en-')) ?? null;
-    if (englishVoice) utterance.voice = englishVoice;
-    utterance.rate = 1;
-    utterance.pitch = 1.1;
-
-    synth.speak(utterance);
-  }
-
-  async function sendVoiceToHotline(chunks: Blob[], stream: MediaStream) {
-    if (!sessionId || chunks.length === 0) return;
-
-    setChatLoading(true);
-    setError(null);
-
-    try {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      const formData = new FormData();
-      formData.append('sessionId', sessionId);
-      formData.append('audio', blob, 'hotline.webm');
-
-      const res = await fetch('/api/elf-hotline-voice', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data?.message || 'Something went wrong with the Elf hotline.',
-        );
-      }
-
-      const userMsg: ChatMessage = {
-        id: `parent-${Date.now()}`,
-        from: 'parent',
-        text: data.transcript,
-      };
-
-      const elfMsg: ChatMessage = {
-        id: `elf-${Date.now()}`,
-        from: 'elf',
-        text: data.reply,
-      };
-
-      setChatMessages((prev) => [...prev, userMsg, elfMsg]);
-      setHotlineDone(Boolean(data.done));
-      speak(data.reply);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setChatLoading(false);
-      stream.getTracks().forEach((t) => t.stop());
-    }
-  }
-
-  // -------- Plan viewer (unused in UI now but kept) --------
-  function PlanViewer({ plan }: { plan: ElfPlanObject }) {
-    if (!plan || !plan.days) return null;
-
-    return (
-      <div className="mt-6 md:mt-8">
-        <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-4 sm:p-5 lg:p-6">
-          <div className="mb-4">
-            <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 flex items-center gap-2 text-slate-50">
-              <span>🎄 Your 24-Night Elf Plan</span>
-            </h2>
-
-            {plan.planOverview && (
-              <p className="text-xs sm:text-sm text-slate-300 whitespace-pre-line">
-                {plan.planOverview}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-2 space-y-3">
-            {plan.days.map((day, idx) => (
-              <article
-                key={day.dayNumber ?? day.date ?? idx}
-                className="rounded-2xl bg-slate-900/70 border border-slate-800 px-3 py-3 sm:px-4 sm:py-4"
-              >
-                <header className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                  <h3 className="text-sm sm:text-base font-semibold text-slate-50">
-                    Day {day.dayNumber ?? idx + 1} — {day.title}
-                  </h3>
-                  {day.date && day.weekday && (
-                    <span className="text-[10px] sm:text-xs text-slate-400">
-                      {day.weekday}, {day.date}
-                    </span>
-                  )}
-                </header>
-
-                <p className="mt-2 text-xs sm:text-sm text-slate-300 whitespace-pre-line">
-                  {day.description}
-                </p>
-
-                {day.noteFromElf && (
-                  <p className="mt-2 text-xs sm:text-sm text-emerald-300 italic">
-                    ✨ Note from Merry: “{day.noteFromElf}”
-                  </p>
-                )}
-
-                {day.imagePrompt && (
-                  <details className="mt-3 text-[11px] text-slate-400">
-                    <summary className="cursor-pointer text-slate-500 hover:text-slate-300">
-                      Show image prompt (for setup reference)
-                    </summary>
-                    <p className="mt-2 text-[11px] sm:text-xs whitespace-pre-line">
-                      {day.imagePrompt}
-                    </p>
-                  </details>
-                )}
-              </article>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // -------- Plan text formatter (for fallback view) --------
   function formatPlanForDisplay(planState: PlanState): string {
     if (!planState) return '';
+
     if (typeof planState === 'string') return planState;
 
     const overview = planState.planOverview
@@ -444,7 +272,7 @@ export default function SuccessClient() {
     return overview + dayLines.join('\n\n');
   }
 
-  const planText = formatPlanForDisplay(plan); // currently unused
+  const planText = formatPlanForDisplay(plan);
 
   // -------- Generate full plan --------
   async function handleGenerate() {
@@ -471,7 +299,32 @@ export default function SuccessClient() {
       }
 
       const data = await res.json();
-      setPlan(data.plan as PlanState);
+      console.log('[Success page] generate-plan response:', data);
+
+      // Try to find the plan on flexible keys
+      let incoming: any =
+        data.plan ?? data.planJson ?? data.planText ?? data.fullPlan;
+
+      // Sometimes API might send back the whole session with plan inside
+      if (!incoming && data.session?.plan) {
+        incoming = data.session.plan;
+      }
+
+      if (!incoming) {
+        throw new Error('Plan was generated but not returned by the API.');
+      }
+
+      // If it’s a string, try to JSON.parse it, but fall back to the raw string
+      if (typeof incoming === 'string') {
+        try {
+          const parsed = JSON.parse(incoming);
+          setPlan(parsed);
+        } catch {
+          setPlan(incoming);
+        }
+      } else {
+        setPlan(incoming as PlanState);
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Something went wrong. Please try again.');
@@ -486,9 +339,8 @@ export default function SuccessClient() {
     if (!hydratedFromSession) return;
     if (sessionLoading) return;
     if (isLoading) return;
-    if (plan) return;
+    if (plan) return; // already have a plan (string or object)
 
-    // We have a valid session and no plan yet – brew automatically.
     void handleGenerate();
   }, [sessionId, hydratedFromSession, sessionLoading, isLoading, plan]);
 
@@ -545,7 +397,6 @@ export default function SuccessClient() {
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
       <div className="mx-auto w-full max-w-6xl space-y-8">
-        {/* MAIN CARD: hero + brewing indicator / plan */}
         <section
           className={`rounded-3xl border border-slate-800 bg-slate-900/70 p-6 md:p-8 ${
             hasPlanObject
@@ -553,9 +404,8 @@ export default function SuccessClient() {
               : 'grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]'
           }`}
         >
-          {/* LEFT: header + brewing indicator or plan */}
+          {/* LEFT */}
           <div className="space-y-6">
-            {/* Slim hero */}
             <div>
               <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-300">
                 Payment complete
@@ -564,7 +414,7 @@ export default function SuccessClient() {
               </p>
 
               <h1 className="mb-2 text-2xl font-semibold md:text-3xl">
-                {hasPlanObject
+                {hasPlanObject || plan
                   ? `Here’s ${childLabel} 24-night Elf plan 🎄`
                   : `Merry is brewing ${childLabel} Elf plan 🎄`}
               </h1>
@@ -573,21 +423,15 @@ export default function SuccessClient() {
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] text-slate-300">
                   ~1 minute
                   <span className="h-1 w-1 rounded-full bg-emerald-300" />
-                  Your plan is being prepared
+                  {plan ? 'Your plan is ready' : 'Your plan is being prepared'}
                 </span>
               </div>
 
               {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-              {!sessionId && (
-                <p className="mt-3 text-xs text-amber-300">
-                  No session ID found in the URL. If you reached this page by
-                  mistake, go back to the homepage and start again.
-                </p>
-              )}
             </div>
 
-            {/* BREWING INDICATOR (no chat, no button) */}
-            {!hasPlanObject && (
+            {/* BREWING INDICATOR – ONLY while no plan at all */}
+            {!plan && (
               <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
                 <div className="flex items-start gap-3">
                   <div className="relative flex h-9 w-9 items-center justify-center">
@@ -607,8 +451,14 @@ export default function SuccessClient() {
                 </div>
 
                 <ul className="space-y-1.5 text-[11px] text-slate-300">
-                  <li>• 24 mornings of Elf setups tailored to your child’s age and vibe.</li>
-                  <li>• You’ll be able to check, tweak, or swap any days once the plan appears below.</li>
+                  <li>
+                    • 24 mornings of Elf setups tailored to your child’s age and
+                    vibe.
+                  </li>
+                  <li>
+                    • You’ll be able to check, tweak, or swap any days once the
+                    plan appears below.
+                  </li>
                   <li>
                     • When you’re happy and commit to your plan, you can turn on
                     daily emails that tell you exactly what to set up at
@@ -616,25 +466,18 @@ export default function SuccessClient() {
                   </li>
                 </ul>
 
-                {isLoading && (
+                {isBrewing && (
                   <p className="text-[11px] text-emerald-300">
                     Brewing mischief and cosy moments… ✨
-                  </p>
-                )}
-
-                {!isLoading && !sessionLoading && !plan && (
-                  <p className="text-[11px] text-slate-400">
-                    Almost there – if this takes more than a minute, try
-                    refreshing the page.
                   </p>
                 )}
               </div>
             )}
 
-            {/* When plan exists, show it full-width under the header */}
-            {hasPlanObject && (
+            {/* SWIPER when we have a proper JSON plan */}
+            {hasPlanObject && planObject && (
               <ElfPlanSwiper
-                days={(plan as ElfPlanObject).days!.map((day) => ({
+                days={planObject.days!.map((day) => ({
                   dayNumber: day.dayNumber!,
                   title: day.title!,
                   description: day.description!,
@@ -648,10 +491,28 @@ export default function SuccessClient() {
                 sessionId={sessionId}
               />
             )}
+
+            {/* FALLBACK: show the plan as text if it’s not in the expected JSON shape */}
+            {plan && !hasPlanObject && (
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
+                <p className="mb-2 text-sm font-semibold text-slate-50">
+                  Your Elf plan is ready 🎄
+                </p>
+                <p className="mb-3 text-xs text-slate-300">
+                  We’ve generated your 24-morning plan, but it came back in a
+                  simpler text format. You can still use this immediately —
+                  each day is listed below. If this keeps happening, send me a
+                  screenshot and I’ll tweak the JSON response.
+                </p>
+                <pre className="max-h-[420px] overflow-auto rounded-xl bg-slate-900/80 p-3 text-[11px] leading-relaxed text-slate-100 whitespace-pre-wrap">
+                  {planText}
+                </pre>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: Merry illustration while brewing */}
-          {!hasPlanObject && (
+          {!hasPlanObject && !plan && (
             <div className="relative mt-4 flex items-center justify-center md:mt-0">
               <div className="absolute -inset-1 rounded-3xl bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.35),transparent_55%),radial-gradient(circle_at_80%_100%,rgba(56,189,248,0.25),transparent_55%)] opacity-80 blur-2xl" />
               <div className="relative w-full max-w-xs rounded-2xl border border-slate-800 bg-slate-950/90 p-4 shadow-[0_25px_80px_rgba(15,23,42,0.95)] sm:max-w-sm">
