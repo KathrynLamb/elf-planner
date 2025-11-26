@@ -1,8 +1,9 @@
 // src/app/api/verify/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, loginTokens, sessions, elfSessions } from '@/lib/schema';
+import { users, loginTokens, sessions } from '@/lib/schema';
 import { eq, and, gt } from 'drizzle-orm';
+import { getElfSession } from '@/lib/elfStore';
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
 
   const now = new Date();
 
-  // 1) Look up valid token
+  // 1) Look up valid login token
   const [record] = await db
     .select()
     .from(loginTokens)
@@ -49,15 +50,11 @@ export async function GET(req: Request) {
     .values({ userId: user.id, expiresAt })
     .returning();
 
-  // 5) Attach elf session to this user (if it already exists in Postgres)
-  const [elfSession] = await db
-    .update(elfSessions)
-    .set({ userId: user.id })
-    .where(eq(elfSessions.id, sessionId))
-    .returning();
+  // 5) Load the elf session from Redis/elfStore
+  const storedSession = await getElfSession(sessionId).catch(() => null);
 
-  // If we couldn't find an elfSession row at all, just dump them back home
-  if (!elfSession) {
+  if (!storedSession) {
+    // We genuinely don't know this session id – bail out nicely
     const homeResponse = NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_BASE_URL}/?error=no-elf-session`,
     );
@@ -70,12 +67,13 @@ export async function GET(req: Request) {
     return homeResponse;
   }
 
-  // 6) Decide where to send them
+  // 6) Decide if they’ve already paid
   const hasPaid =
-    Boolean((elfSession as any).paidAt) ||
-    Boolean((elfSession as any).planCommittedAt);
+    // paypalSessionId might exist in the stored JSON even if it's not in the TS type
+    Boolean((storedSession as any).paypalSessionId) ||
+    Boolean(storedSession.plan && storedSession.plan.status === 'final');
 
-  // Base URL helper (same pattern you use elsewhere)
+  // Build a reliable base URL (same pattern as in your PayPal route)
   const reqUrl = new URL(req.url);
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '') ||
@@ -85,23 +83,20 @@ export async function GET(req: Request) {
   let redirectUrl: string;
 
   if (hasPaid) {
-    // Already paid → full plan / success page
+    // ✅ Already paid → straight to full plan / success
     redirectUrl = `${baseUrl}/success?session_id=${sessionId}`;
   } else {
-    // Not paid yet → create PayPal order server-side and redirect straight to PayPal
+    // ❌ Not paid yet → create PayPal order and send them straight to PayPal
 
-    // Fallbacks in case some fields are missing
-    const childName = elfSession.childName ?? 'your child';
-    const ageRange = elfSession.ageRange ?? '4–6 years';
+    const childName = storedSession.childName ?? 'your child';
+    const ageRange = storedSession.ageRange ?? '4–6 years';
     const startDate =
-      elfSession.startDate ?? `${new Date().getFullYear()}-12-01`;
-    const vibe = (elfSession.vibe as any) || 'silly';
+      storedSession.startDate ?? `${new Date().getFullYear()}-12-01`;
+    const vibe = (storedSession as any).vibe || 'silly';
 
-    // Hard-coded product price & currency – adjust if needed
     const amount = 14.99;
     const currency: 'GBP' | 'USD' | 'EUR' = 'GBP';
 
-    // Call your existing PayPal create route
     const paypalRes = await fetch(`${baseUrl}/api/paypal-elf/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,16 +118,19 @@ export async function GET(req: Request) {
         paypalRes.status,
         await paypalRes.text().catch(() => ''),
       );
-      // Fallback: send them to your internal checkout screen instead of blowing up
+      // Fallback: go to internal checkout instead of exploding
       redirectUrl = `${baseUrl}/checkout?session_id=${sessionId}&error=paypal`;
     } else {
       const data = await paypalRes.json();
       const approveUrl = data.approveUrl as string | undefined;
       if (!approveUrl) {
-        console.error('[verify] Missing approveUrl from paypal-elf/create', data);
+        console.error(
+          '[verify] Missing approveUrl from /api/paypal-elf/create',
+          data,
+        );
         redirectUrl = `${baseUrl}/checkout?session_id=${sessionId}&error=paypal`;
       } else {
-        // ✅ Go straight to PayPal
+        // ✅ Straight to PayPal smart checkout
         redirectUrl = approveUrl;
       }
     }
