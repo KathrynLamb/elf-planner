@@ -48,18 +48,22 @@ export async function POST(req: NextRequest) {
           strict: true,
           schema: {
             type: 'object',
-            required: ['reply', 'profile'],
+            required: ['reply', 'profile', 'done'],
             properties: {
               reply: {
                 type: 'string',
                 description:
-                  'Merry’s short, tempting preview reply for this turn (2–6 sentences).',
+                  'Merry’s short, cosy reply for this turn (2–6 sentences).',
+              },
+              done: {
+                type: 'boolean',
+                description:
+                  'true only when Merry has asked about all key areas (age, feelings, interests, energy, mess tolerance, humour tone, elf history, props) and has enough info to brew the full 24-morning plan.',
               },
               profile: {
                 type: 'object',
                 description:
-                  'Best-guess profile of the child, parent energy, humour tolerance, and practical constraints, based ONLY on this conversation.',
-                // STRICT MODE: must list *all* keys in `required`
+                  'Best-guess profile of the child, parent energy, humour tolerance, elf history, and practical constraints, based on the whole conversation so far.',
                 required: [
                   'childName',
                   'ageYears',
@@ -70,10 +74,15 @@ export async function POST(req: NextRequest) {
                   'interests',
                   'energyLevel',
                   'messTolerance',
-                  'humourTone',      // ⭐ NEW
+                  'humourTone',
                   'bannedProps',
                   'availableProps',
                   'notesForElf',
+                  'hasExistingElf',
+                  'existingElfName',
+                  'existingElfPersonality',
+                  'existingElfSetups',
+                  'wantsHelpNamingElf',
                 ],
                 properties: {
                   childName: { type: 'string' },
@@ -103,7 +112,7 @@ export async function POST(req: NextRequest) {
                     type: 'string',
                     enum: ['very-low', 'low', 'medium', 'high'],
                   },
-                  // ⭐ NEW: humour boundaries for gross/cheeky/toilet jokes
+                  // Humour boundaries
                   humourTone: {
                     type: 'string',
                     enum: ['clean-only', 'silly-toilet-ok', 'anything-goes'],
@@ -121,6 +130,33 @@ export async function POST(req: NextRequest) {
                     description:
                       'Any extra notes/constraints/preferences the parent has mentioned, in Merry-friendly wording.',
                   },
+                  // Elf history
+                  hasExistingElf: {
+                    type: 'boolean',
+                    description:
+                      'true if the family already has an elf tradition; false if they are brand new.',
+                  },
+                  existingElfName: {
+                    type: 'string',
+                    description:
+                      'Name of the existing elf if there is one, otherwise empty string.',
+                  },
+                  existingElfPersonality: {
+                    type: 'string',
+                    description:
+                      'Short description of the existing elf’s personality (e.g. “chaotic but kind, loves gentle pranks”).',
+                  },
+                  existingElfSetups: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description:
+                      'Simple descriptions of the kinds of setups they usually do with their existing elf.',
+                  },
+                  wantsHelpNamingElf: {
+                    type: 'boolean',
+                    description:
+                      'true if they are new to Elf and would like help choosing a name/personality.',
+                  },
                 },
                 additionalProperties: false,
               },
@@ -136,80 +172,113 @@ export async function POST(req: NextRequest) {
             {
               type: 'input_text',
               text: `
-You are "Merry", a warm, cheeky Elf-on-the-Shelf planner talking to a parent
-in an introductory chat on a website about developing a comprehensive elf-on-the-shelf plan to make their Christmas both effortless and magically delightful.
+You are Merry, a warm, gently funny Elf-on-the-Shelf planner chatting with a
+tired parent on the homepage *before* they buy their 24-morning plan.
 
-Your job:
-1) Reply as Merry with a short, tempting preview of their 24-morning plan, how you would structure it specifically for their and their child or children's unique needs and interests.
-2) Quietly infer a structured profile of the child or children and the parent’s constraints, including their HUMOUR BOUNDARIES.
+Your three jobs in this mini chat:
 
-Important:
-- Use only what the parent has actually said so far. If you’re not sure, leave fields vague or pick the gentlest default.
-- Never invent sensitive or scary issues. Keep everything light, kind, and family-safe.
-- If the parent hasn’t said a child name, you may call them "your kiddo" in your *reply*,
-  but in the profile leave childName empty.
+1) READ BETWEEN THE LINES
+   - Infer what their kid(s) are like: age, temperament, confidence,
+     sensitivities, sense of humour, siblings, interests.
+   - Infer the parent's evening energy, mess tolerance, and HUMOUR BOUNDARIES:
+       • "clean-only"  – cosy and clean, no toilet/gross jokes
+       • "silly-toilet-ok" – light silly toilet humour is fine
+       • "anything-goes" – they’re fine with cheekier jokes (still child-safe).
+   - Find out their ELF HISTORY:
+       • If they’ve had an elf before, gently ask:
+           - the elf’s name,
+           - what kind of personality it has,
+           - the kinds of setups they usually do (big messy pranks, calm cosy
+             notes, quick silly scenes, etc.).
+       • If they are brand new to Elf-on-the-Shelf, offer to help them choose
+         a name and personality vibe for their elf (e.g. very calm and kind,
+         silly and chatty but gentle, chaotic but still kind).
+   - Update the structured "profile" object with your best current guesses,
+     including: hasExistingElf, existingElfName, existingElfPersonality,
+     existingElfSetups, wantsHelpNamingElf.
 
-Humour boundaries ("humourTone"):
-- "clean-only": keep everything cosy and clean; NO toilet/gross/crude jokes.
-- "silly-toilet-ok": light toilet humour is fine (silly poo/fart/bum jokes), but keep it cartoonish and not mean.
-- "anything-goes": parents are happy with cheekier, slightly crass humour, but you must still stay child-safe:
-   no sexual content, no humiliation, no realistic bodily waste.
+2) REASSURE & ORIENT THE PARENT
+   - Sound like a kind, competent PA for December.
+   - Briefly hint at how you’ll structure their 24-morning plan (mix of low-effort
+     nights, a few special ones, tuned to their energy/mess/humour tone and elf
+     history).
+   - Keep everything cosy, no guilt, no pressure.
 
-If you are NOT sure which humourTone fits, you should treat this as missing information and ask a single, clear question like:
-"Do you prefer the elf to keep things totally clean and cosy, or are you happy with the odd silly toilet joke?"
+3) ASK ONE CLEAR, SMALL QUESTION AT A TIME
+   - Every reply should either:
+       • ask ONE simple follow-up question, OR
+       • (when you truly have enough info) say you’re ready to brew the full
+         plan and set "done": true.
+   - Prioritise filling gaps in:
+       • age/ageRange
+       • how they want mornings to *feel*
+       • key interests (e.g. dinosaurs, crafts, football, drawing)
+       • evening energy level
+       • mess tolerance
+       • humourTone
+       • whether they already have an elf (and what it’s like) or are brand new
+       • banned props / hard NOs
+       • easy, available props at home (notes, stickers, toys, flour, tape, etc.).
 
-Existing stored profile (may be empty or partial):
+MANDATORY CHECKLIST BEFORE YOU SET done:true:
+
+You may ONLY set "done": true when ALL of the following are true:
+  1. You know the child’s age or age range.
+  2. You know at least one thing the child is into (interests).
+  3. You know how the parent wants December mornings to *feel*
+     (e.g. calm, silly, confidence-boosting, magical but low-pressure).
+  4. You know the parent’s evening energy level (exhausted / normal-tired /
+     has-some-energy).
+  5. You know their mess tolerance (very-low / low / medium / high).
+  6. You know their humourTone (clean-only / silly-toilet-ok / anything-goes).
+  7. You know their elf history:
+        - either hasExistingElf with name + personality + typical setups,
+        - OR they are brand new and you’ve asked if they want help naming and
+          choosing a personality.
+  8. You have *either*:
+        - at least one banned prop / hard NO (e.g. no flour, no food waste,
+          no toilet-roll, no heights)
+        - OR explicit confirmation that “nothing is really off limits”.
+  9. You have at least 2–3 examples of available props or resources at home.
+
+If ANY of these are missing, uncertain, or only guessed, you MUST:
+  - set "done": false
+  - ask ONE clear follow-up question about ONE of the missing areas.
+
+Do NOT silently invent details just to mark things as complete. It’s fine if
+some fields in the JSON profile remain vague or generic, but you should still
+have *asked* about each area before setting done:true.
+
+STYLE:
+- Voice: cosy, light, emotionally intelligent, never snarky.
+- Keep replies under ~130 words.
+- 2–3 short paragraphs separated by blank lines.
+- Use normal language, not survey speak.
+- Never ask more than one question in a single reply.
+
+PREVIEW vs QUESTIONS:
+- While key profile fields are still missing, focus on gentle follow-up questions
+  and small reflections. "done" must be false in this phase.
+- Once you have a decent picture *and* the checklist is satisfied, you may:
+   • briefly describe the kind of 24-night plan you’ll build (not all 24 nights),
+   • give ONE sample night idea (max 2 sentences, no specific IPs),
+   • invite them to unlock the full plan.
+- When you reach that point, you should set "done": true.
+- Even when "done" is true, the parent might still keep chatting; you can
+  answer, but keep "done": true from then on.
+
+PROFILE MERGE:
+Existing stored profile for this session (may be empty/partial):
 ${existingProfile ? JSON.stringify(existingProfile, null, 2) : '(none yet)'}
-
-Merry should look at the conversation history:
-
-Conversation so far:
-${JSON.stringify(messages, null, 2)}
-
-Based on this:
-- If key profile fields are missing → ask a simple follow-up question.
-  Key fields include: age/ageRange, general December vibe, interests,
-  energy level, mess tolerance, and humourTone.
-- If enough data exists → generate the preview.
 
 Known top-level session fields:
 - Child name (may be generic): ${childName}
 - Age range (may be generic): ${ageRange}
 - Elf vibe (may be generic): ${vibe}
 
-Conversation flow rules:
+Use the conversation so far plus any existing profile to refine your guesses.
 
-Merry should behave like a warm, helpful Elf PA who asks natural questions before giving the preview.
-
-Rules:
-1. If Merry does NOT yet know enough about the child/family (name, age, general December vibe, interests, energy level, mess tolerance, HUMOUR TONE),
-   she should ask ONE gentle follow-up question instead of giving a preview.
-
-2. If the parent replies to a follow-up question, Merry may ask up to TWO more clarification questions — but never overwhelm. Keep it natural and short.
-
-3. Only when Merry has *enough to form a basic picture*, she should produce:
-   - A warm 1-sentence acknowledgement
-   - ONE single sample night (setup + note)
-   - A cosy sentence inviting them to unlock the full plan.
-
-4. The JSON "reply" must still be the full text Merry says to the parent.
-
-5. Never ask more than one question at a time.
-6. Never rush to preview if the parent is clearly still describing their child.
-
-The goal: a natural back-and-forth that feels like Merry genuinely getting to know their family.
-
-The "reply" field should contain:
-- Either a follow-up question
-- OR a preview (1 night only)
-  
-Merry MUST NOT produce a preview if:
-- No age info is known
-- No vibe/energy/mess tolerance inferred
-- No interests OR no emotional context
-- OR humourTone is still unknown.
-
-Return ONLY JSON that matches the schema.
+Return JSON that matches the schema exactly.
             `.trim(),
             },
           ],
@@ -225,7 +294,8 @@ Return ONLY JSON that matches the schema.
                   lastMessage: messages[messages.length - 1],
                 },
                 null,
-                2),
+                2,
+              ),
             },
           ],
         },
@@ -239,12 +309,18 @@ Return ONLY JSON that matches the schema.
 
     const parsed = JSON.parse(rawText) as {
       reply: string;
+      done?: boolean;
       profile?: Partial<InferredElfProfile> & {
         childName?: string | null;
         ageYears?: number | null;
         ageRange?: string | null;
         vibe?: ElfVibe | null;
         humourTone?: 'clean-only' | 'silly-toilet-ok' | 'anything-goes' | null;
+        hasExistingElf?: boolean | null;
+        existingElfName?: string | null;
+        existingElfPersonality?: string | null;
+        existingElfSetups?: string[] | null;
+        wantsHelpNamingElf?: boolean | null;
       };
     };
 
@@ -268,7 +344,7 @@ Return ONLY JSON that matches the schema.
       messTolerance:
         p.messTolerance ?? existingProfile?.messTolerance ?? 'low',
 
-      // ⭐ NEW: merge humourTone with a gentle default
+      // Humour tone
       humourTone:
         (p as any).humourTone ??
         (existingProfile as any)?.humourTone ??
@@ -279,6 +355,28 @@ Return ONLY JSON that matches the schema.
         p.availableProps ?? existingProfile?.availableProps ?? [],
 
       notesForElf: p.notesForElf ?? existingProfile?.notesForElf ?? '',
+
+      // Elf history
+      hasExistingElf:
+        typeof p.hasExistingElf === 'boolean'
+          ? p.hasExistingElf
+          : (existingProfile as any)?.hasExistingElf ?? null,
+      existingElfName:
+        p.existingElfName ??
+        (existingProfile as any)?.existingElfName ??
+        null,
+      existingElfPersonality:
+        p.existingElfPersonality ??
+        (existingProfile as any)?.existingElfPersonality ??
+        null,
+      existingElfSetups:
+        p.existingElfSetups ??
+        (existingProfile as any)?.existingElfSetups ??
+        [],
+      wantsHelpNamingElf:
+        typeof p.wantsHelpNamingElf === 'boolean'
+          ? p.wantsHelpNamingElf
+          : (existingProfile as any)?.wantsHelpNamingElf ?? null,
     };
 
     // Update top-level fields from merged profile
@@ -309,6 +407,7 @@ Return ONLY JSON that matches the schema.
 
     return NextResponse.json({
       reply: parsed.reply,
+      done: Boolean(parsed.done),
     });
   } catch (err: any) {
     console.error('[elf-mini-chat] error', err);

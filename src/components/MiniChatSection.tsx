@@ -32,8 +32,10 @@ export function MiniChatSection() {
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [hasPreview, setHasPreview] = React.useState(false);
   const [isThinking, setIsThinking] = React.useState(false);
+
+  // NEW: gate the magic-link CTA
+  const [readyForPlan, setReadyForPlan] = React.useState(false);
 
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
   const sectionRef = React.useRef<HTMLElement | null>(null);
@@ -51,7 +53,6 @@ export function MiniChatSection() {
     const section = sectionRef.current;
     if (!section) return;
 
-    // Scroll the chat section to the top of the viewport so messages stay visible
     const rect = section.getBoundingClientRect();
     const scrollY = window.scrollY + rect.top;
     window.scrollTo({ top: scrollY, behavior: "smooth" });
@@ -89,7 +90,10 @@ export function MiniChatSection() {
         throw new Error("Something went wrong. Please try again.");
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as {
+        reply: string;
+        done?: boolean;
+      };
 
       const assistantMessage: ChatMessage = {
         id: `m-${Date.now()}-a`,
@@ -98,7 +102,14 @@ export function MiniChatSection() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      setHasPreview(true);
+
+      // Count user turns in the full history (including this one)
+      const userTurnCount = history.filter((m) => m.role === "user").length;
+
+      // Only unlock CTA when Merry is done AND we've had at least 2 user turns
+      if (data.done && userTurnCount >= 2) {
+        setReadyForPlan(true);
+      }
     } catch (err: any) {
       console.error("[MiniChatSection] error", err);
       setError(
@@ -119,7 +130,7 @@ export function MiniChatSection() {
     >
       {/* full viewport chat layout */}
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-8">
-        {/* Chat header (like Messenger conversation header) */}
+        {/* Chat header */}
         <header className="mb-3 flex items-center gap-3 sm:mb-4">
           <div className="h-9 w-9 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 sm:h-10 sm:w-10" />
           <div className="flex flex-col">
@@ -173,17 +184,14 @@ export function MiniChatSection() {
             )}
           </div>
 
-          {/* Input + footer (outside scroll, stuck at bottom of section) */}
+          {/* Input + footer */}
           <div className="border-t border-slate-800 bg-slate-900/95 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-3">
             {/* Error */}
             {error && (
               <p className="mb-2 text-xs text-rose-300 sm:text-sm">{error}</p>
             )}
 
-            <form
-              onSubmit={handleSend}
-              className="flex items-center gap-2"
-            >
+            <form onSubmit={handleSend} className="flex items-center gap-2">
               <input
                 ref={inputRef}
                 className="flex-1 rounded-full border border-emerald-400/60 bg-slate-950/90 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
@@ -201,14 +209,17 @@ export function MiniChatSection() {
               </button>
             </form>
 
-            {/* Upsell once they’ve seen a preview */}
-            {hasPreview && (
+            {/* Magic-link upsell – only once Merry is truly ready */}
+            {readyForPlan && (
               <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-3 text-left text-sm text-slate-100 sm:p-4">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 sm:text-xs">
                   Ready to get your full plan?
                 </p>
                 <p className="mb-3 text-xs text-slate-200 sm:text-sm">
-                Enter your email to get a secure magic link. Tap it to pay once with PayPal, and Merry will unlock your 24-night Elf plan and start sending each morning’s setup email in time to prepare.
+                  Merry has everything she needs. Enter your email to get a
+                  secure magic link. Tap it to pay once with PayPal, and Merry
+                  will unlock your 24-night Elf plan and start sending each
+                  morning’s setup email in time to prepare.
                 </p>
                 <GeneratePlanButton sessionId={sessionId} />
               </div>

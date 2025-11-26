@@ -95,6 +95,12 @@ export type InferredElfProfile = {
   pets: string[];
   interests: string[];
 
+  hasExistingElf?: boolean | null;
+  existingElfName?: string | null;
+  existingElfPersonality?: string | null; // e.g. “chaotic and silly but kind”
+  existingElfSetups?: string[];           // e.g. ["big messy pranks", "little notes", ...]
+  wantsHelpNamingElf?: boolean | null; 
+
   energyLevel: 'exhausted' | 'normal-tired' | 'has-some-energy';
   messTolerance: 'very-low' | 'low' | 'medium' | 'high';
 

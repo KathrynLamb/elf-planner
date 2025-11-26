@@ -17,12 +17,6 @@ type ElfSession = {
   vibe: ElfVibe;
 };
 
-type ChatMessage = {
-  id: string;
-  from: 'elf' | 'parent';
-  text: string;
-};
-
 type ElfPlanDay = {
   dayNumber?: number;
   title?: string;
@@ -54,21 +48,7 @@ export default function SuccessClient() {
   const [reminderErr, setReminderErr] = useState<null | string>(null);
   const [reminderMsg, setReminderMsg] = useState<null | string>(null);
 
-  // Chat state kept for future reuse, but UI is hidden
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [hotlineDone, setHotlineDone] = useState(false);
-  const [hotlineSkipped, setHotlineSkipped] = useState(false);
-
   const [hydratedFromSession, setHydratedFromSession] = useState(false);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] =
-    useState<MediaRecorder | null>(null);
-  const [recordStartTime, setRecordStartTime] = useState<number | null>(null);
-
-  const chatRef = React.useRef<HTMLDivElement | null>(null);
 
   // Derived helpers for plan shape
   const planObject =
@@ -86,12 +66,6 @@ export default function SuccessClient() {
       localStorage.removeItem('elf-mini-session-id');
     }
   }, []);
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [chatMessages, chatLoading]);
 
   // -------- Load session from backend --------
   useEffect(() => {
@@ -153,77 +127,6 @@ export default function SuccessClient() {
         if (fullSession.plan) {
           console.log('[Success page] hydrating existing plan from session');
           setPlan(fullSession.plan as PlanState);
-        }
-
-        // Hydrate hotline transcript (kept, but UI hidden)
-        const hydrated: ChatMessage[] = [];
-        if (Array.isArray(fullSession.hotlineTranscript)) {
-          fullSession.hotlineTranscript.forEach((turn: any, idx: number) => {
-            if (turn?.type === 'welcome') {
-              if (typeof turn.reply === 'string' && turn.reply.trim()) {
-                hydrated.push({
-                  id: `hotline-${idx}-welcome`,
-                  from: 'elf',
-                  text: turn.reply,
-                });
-              }
-              return;
-            }
-
-            if (turn?.type === 'turn') {
-              if (typeof turn.message === 'string' && turn.message.trim()) {
-                hydrated.push({
-                  id: `hotline-${idx}-parent`,
-                  from: 'parent',
-                  text: turn.message,
-                });
-              }
-              if (typeof turn.reply === 'string' && turn.reply.trim()) {
-                hydrated.push({
-                  id: `hotline-${idx}-elf`,
-                  from: 'elf',
-                  text: turn.reply,
-                });
-              }
-              return;
-            }
-
-            if ('role' in (turn || {}) && 'content' in (turn || {})) {
-              hydrated.push({
-                id: `hotline-${idx}`,
-                from: (turn as any).role === 'assistant' ? 'elf' : 'parent',
-                text: (turn as any).content,
-              });
-              return;
-            }
-
-            if (Array.isArray((turn as any)?.messages)) {
-              (turn as any).messages.forEach(
-                (m: { role: string; content: string }, mIdx: number) => {
-                  hydrated.push({
-                    id: `hotline-${idx}-${mIdx}`,
-                    from: m.role === 'assistant' ? 'elf' : 'parent',
-                    text: m.content,
-                  });
-                },
-              );
-
-              if (
-                typeof (turn as any).reply === 'string' &&
-                (turn as any).reply.trim()
-              ) {
-                hydrated.push({
-                  id: `hotline-${idx}-reply`,
-                  from: 'elf',
-                  text: (turn as any).reply,
-                });
-              }
-            }
-          });
-        }
-
-        if (hydrated.length > 0) {
-          setChatMessages(hydrated);
         }
 
         setHydratedFromSession(true);
@@ -476,20 +379,64 @@ export default function SuccessClient() {
 
             {/* SWIPER when we have a proper JSON plan */}
             {hasPlanObject && planObject && (
-              <ElfPlanSwiper
-                days={planObject.days!.map((day) => ({
-                  dayNumber: day.dayNumber!,
-                  title: day.title!,
-                  description: day.description!,
-                  noteFromElf: day.noteFromElf ?? null,
-                  morningMoment: (day as any).morningMoment ?? null,
-                  materials: (day as any).materials ?? [],
-                  weekday: day.weekday,
-                  date: day.date,
-                  imageUrl: (day as any).imageUrl ?? null,
-                }))}
-                sessionId={sessionId}
-              />
+              <>
+                <ElfPlanSwiper
+                  days={planObject.days!.map((day) => ({
+                    dayNumber: day.dayNumber!,
+                    title: day.title!,
+                    description: day.description!,
+                    noteFromElf: day.noteFromElf ?? null,
+                    morningMoment: (day as any).morningMoment ?? null,
+                    materials: (day as any).materials ?? [],
+                    weekday: day.weekday,
+                    date: day.date,
+                    imageUrl: (day as any).imageUrl ?? null,
+                  }))}
+                  sessionId={sessionId}
+                />
+
+                {/* Email reminder card */}
+                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
+                  <h2 className="text-sm font-semibold text-slate-50">
+                    Get a gentle nudge each evening
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-300">
+                    Pop in your email and I’ll send you a short reminder each
+                    day with what to set up at bedtime for the next morning.
+                  </p>
+
+                  <form
+                    onSubmit={handleEmailReminder}
+                    className="mt-3 flex flex-col gap-2 sm:flex-row"
+                  >
+                    <input
+                      type="email"
+                      required
+                      value={reminderEmail}
+                      onChange={(e) => setReminderEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 placeholder:text-slate-500"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+                    >
+                      Turn on reminders
+                    </button>
+                  </form>
+
+                  {reminderErr && (
+                    <p className="mt-2 text-xs text-red-400">
+                      {reminderErr}
+                    </p>
+                  )}
+                  {reminderMsg && (
+                    <p className="mt-2 text-xs text-emerald-300">
+                      {reminderMsg}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
 
             {/* FALLBACK: show the plan as text if it’s not in the expected JSON shape */}
