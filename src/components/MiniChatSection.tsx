@@ -2,15 +2,16 @@
 "use client";
 
 import * as React from "react";
-import { GeneratePlanButton } from "./GeneratePlanButton";
+
+type ChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+type Phase = "discovery" | "offer" | "collectEmail" | "magicSent";
 
 export function MiniChatSection() {
-  type ChatMessage = {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-  };
-
   const [sessionId] = React.useState(() => {
     if (typeof window === "undefined") return "";
     const existing = window.localStorage.getItem("elf-mini-session-id");
@@ -25,23 +26,22 @@ export function MiniChatSection() {
       id: "m-1",
       role: "assistant",
       content:
-        "Hey there. Tell me about your kiddos and what kind of elf experience you are looking for. 🎄",
+        "Hey there. Tell me about your kiddos and what kind of elf experience you’re looking for this December. 🎄",
     },
   ]);
 
   const [input, setInput] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [isThinking, setIsThinking] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  // NEW: gate the magic-link CTA
-  const [readyForPlan, setReadyForPlan] = React.useState(false);
+  const [phase, setPhase] = React.useState<Phase>("discovery");
 
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
   const sectionRef = React.useRef<HTMLElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Always keep view pinned to the latest message
+  // Scroll to bottom on new messages
   React.useEffect(() => {
     const el = chatScrollRef.current;
     if (!el) return;
@@ -56,6 +56,20 @@ export function MiniChatSection() {
     const rect = section.getBoundingClientRect();
     const scrollY = window.scrollY + rect.top;
     window.scrollTo({ top: scrollY, behavior: "smooth" });
+  }
+
+  function pushAssistantMessage(content: string) {
+    const msg: ChatMessage = {
+      id: `m-${Date.now()}-a-local`,
+      role: "assistant",
+      content,
+    };
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  function looksLikeEmail(text: string) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(text.trim());
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -73,6 +87,36 @@ export function MiniChatSection() {
     setMessages(history);
     setInput("");
     setError(null);
+
+    // Phase-specific handling
+    if (phase === "offer") {
+      handleOfferPhase(text);
+      return;
+    }
+
+    if (phase === "collectEmail") {
+      await handleCollectEmailPhase(text);
+      return;
+    }
+
+    if (phase === "magicSent") {
+      // After magic link is sent, keep it super simple.
+      pushAssistantMessage(
+        "I’ve already sent your magic link — check your inbox (and spam/promotions just in case). Tap it when you’re ready, and I’ll be waiting with your full plan. 💌"
+      );
+      return;
+    }
+
+    // Default: discovery phase, talk to the mini-chat API
+    await handleDiscoveryPhase(history);
+  }
+
+  async function handleDiscoveryPhase(history: ChatMessage[]) {
+    if (!sessionId) {
+      setError("Missing session ID. Please refresh and try again.");
+      return;
+    }
+
     setIsLoading(true);
     setIsThinking(true);
 
@@ -87,7 +131,11 @@ export function MiniChatSection() {
       });
 
       if (!res.ok) {
-        throw new Error("Something went wrong. Please try again.");
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          data?.message ||
+            "Something went wrong talking to Merry. Please try again."
+        );
       }
 
       const data = (await res.json()) as {
@@ -101,17 +149,19 @@ export function MiniChatSection() {
         content: data.reply,
       };
 
+      // Add Merry's AI reply
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Count user turns in the full history (including this one)
-      const userTurnCount = history.filter((m) => m.role === "user").length;
+      // If Merry has enough info, transition into the pricing/flow offer
+      if (data.done && phase === "discovery") {
+        const offerMessage =
+          "Okay, I’ve got a really clear picture now – enough to brew a full 24-morning elf plan that actually fits your kiddo and your energy.\n\nHere’s how it works: I’ll create a 24-morning plan with simple nightly notes and materials lists so you’re not scrambling at 10pm. It’s a one-time $14.99. You’ll get a magic link by email, pay once via PayPal, then your full plan unlocks on the site and I’ll email you each night’s setup in time for bedtime.\n\nWould you like me to set up your full 24-morning plan and send your magic link?";
 
-      // Only unlock CTA when Merry is done AND we've had at least 2 user turns
-      if (data.done && userTurnCount >= 2) {
-        setReadyForPlan(true);
+        pushAssistantMessage(offerMessage);
+        setPhase("offer");
       }
     } catch (err: any) {
-      console.error("[MiniChatSection] error", err);
+      console.error("[MiniChatSection] discovery error", err);
       setError(
         err?.message ||
           "Oops, the North Pole wifi dropped. Please try again in a moment."
@@ -122,13 +172,89 @@ export function MiniChatSection() {
     }
   }
 
+  function handleOfferPhase(text: string) {
+    const lower = text.toLowerCase();
+
+    const isYes = /^(yes|yeah|yep|sure|ok|okay|alright|go for it|do it|sounds good|let's do it|lets do it|why not)\b/.test(
+      lower
+    );
+    const isNo = /^(no|nah|not now|maybe later|another time)/.test(lower);
+
+    if (isNo) {
+      pushAssistantMessage(
+        "No worries at all — we can just keep chatting ideas, or you can come back for the full plan whenever you’re ready. For now, tell me anything else that would make this December easier for you."
+      );
+      setPhase("discovery");
+      return;
+    }
+
+    if (isYes) {
+      pushAssistantMessage(
+        "Lovely! Pop the email you’d like your magic link sent to, and I’ll use that to set up your $14.99 plan."
+      );
+      setPhase("collectEmail");
+      return;
+    }
+
+    // Not clearly yes/no – gently steer back to the question
+    pushAssistantMessage(
+      "Totally fair! If you’d like me to go ahead and set up your full 24-morning plan for $14.99, just reply “yes”. If not, you can say “no” and we’ll just keep chatting ideas."
+    );
+  }
+
+  async function handleCollectEmailPhase(text: string) {
+    const email = text.trim();
+
+    if (!looksLikeEmail(email)) {
+      pushAssistantMessage(
+        "That doesn’t quite look like an email address. Could you type it in the format name@example.com?"
+      );
+      return;
+    }
+
+    if (!sessionId) {
+      setError("Missing session ID. Please refresh and try again.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, sessionId }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          data?.message || "Something went wrong sending your magic link."
+        );
+      }
+
+      pushAssistantMessage(
+        `Got it — I’ve sent a magic link to ${email}. 💌\n\nTap it when you’re ready to unlock your full 24-morning elf plan and pay $14.99 via PayPal. Once you’re in, I’ll show you the whole plan and can email you each night’s setup in time for bedtime.`
+      );
+      setPhase("magicSent");
+    } catch (err: any) {
+      console.error("[MiniChatSection] magic link error", err);
+      setError(
+        err?.message ||
+          "I couldn’t send the magic link just now. Please double-check your email or try again in a moment."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <section
       id="mini-chat"
       ref={sectionRef}
       className="relative w-full bg-slate-950"
     >
-      {/* full viewport chat layout */}
       <div className="mx-auto flex min-h-[100dvh] w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-8">
         {/* Chat header */}
         <header className="mb-3 flex items-center gap-3 sm:mb-4">
@@ -143,9 +269,9 @@ export function MiniChatSection() {
           </div>
         </header>
 
-        {/* Chat card body */}
+        {/* Chat card */}
         <div className="relative flex min-h-0 flex-1 flex-col rounded-3xl border border-slate-800 bg-slate-900/70 shadow-[0_24px_80px_rgba(15,23,42,0.9)]">
-          {/* Messages scroll area */}
+          {/* Messages */}
           <div
             ref={chatScrollRef}
             className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto rounded-3xl bg-slate-950/85 px-3 py-4 sm:px-4 sm:py-5"
@@ -162,8 +288,8 @@ export function MiniChatSection() {
                 <div
                   className={
                     m.role === "assistant"
-                      ? "max-w-[80%] rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-left text-sm text-slate-50"
-                      : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40"
+                      ? "max-w-[80%] rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-left text-sm text-slate-50 whitespace-pre-line"
+                      : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40 whitespace-pre-line"
                   }
                 >
                   {m.content}
@@ -186,7 +312,6 @@ export function MiniChatSection() {
 
           {/* Input + footer */}
           <div className="border-t border-slate-800 bg-slate-900/95 px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-3">
-            {/* Error */}
             {error && (
               <p className="mb-2 text-xs text-rose-300 sm:text-sm">{error}</p>
             )}
@@ -195,7 +320,11 @@ export function MiniChatSection() {
               <input
                 ref={inputRef}
                 className="flex-1 rounded-full border border-emerald-400/60 bg-slate-950/90 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
-                placeholder="Tell Merry about your kid and December…"
+                placeholder={
+                  phase === "collectEmail"
+                    ? "Type your email, e.g. you@example.com…"
+                    : "Tell Merry about your kid and December…"
+                }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onFocus={focusSectionForMobile}
@@ -205,25 +334,13 @@ export function MiniChatSection() {
                 disabled={!input.trim() || isLoading}
                 className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send
+                {isLoading && phase === "collectEmail"
+                  ? "Sending…"
+                  : isLoading
+                  ? "Sending…"
+                  : "Send"}
               </button>
             </form>
-
-            {/* Magic-link upsell – only once Merry is truly ready */}
-            {readyForPlan && (
-              <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-400/5 p-3 text-left text-sm text-slate-100 sm:p-4">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 sm:text-xs">
-                  Ready to get your full plan?
-                </p>
-                <p className="mb-3 text-xs text-slate-200 sm:text-sm">
-                  Merry has everything she needs. Enter your email to get a
-                  secure magic link. Tap it to pay once with PayPal, and Merry
-                  will unlock your 24-night Elf plan and start sending each
-                  morning’s setup email in time to prepare.
-                </p>
-                <GeneratePlanButton sessionId={sessionId} />
-              </div>
-            )}
           </div>
         </div>
       </div>

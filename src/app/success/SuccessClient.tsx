@@ -124,10 +124,44 @@ export default function SuccessClient() {
         });
 
         // If the plan is already present in the session, hydrate it
+            // If a plan is already present, only hydrate it if it matches
+        // the *latest* chat info. If the chat is newer than the plan,
+        // treat the old plan as stale and let the Success page regenerate.
+        let hydratedPlan: PlanState = null;
+
         if (fullSession.plan) {
-          console.log('[Success page] hydrating existing plan from session');
-          setPlan(fullSession.plan as PlanState);
+          const planGeneratedAt = fullSession.planGeneratedAt ?? 0;
+
+          // introChatTranscript is an array of { at, messages, reply }
+          const transcript = Array.isArray(fullSession.introChatTranscript)
+            ? fullSession.introChatTranscript
+            : [];
+
+          const lastIntroAt = transcript.reduce((max: number, turn: any) => {
+            const t = typeof turn?.at === 'number' ? turn.at : 0;
+            return t > max ? t : max;
+          }, 0);
+
+          const isPlanStale =
+            planGeneratedAt > 0 && lastIntroAt > 0 && planGeneratedAt < lastIntroAt;
+
+          if (isPlanStale) {
+            console.log(
+              '[Success page] existing plan is older than latest chat – treating as stale and regenerating',
+              { planGeneratedAt, lastIntroAt },
+            );
+            hydratedPlan = null; // force auto-generate
+          } else {
+            console.log(
+              '[Success page] hydrating existing plan from session',
+              { planGeneratedAt, lastIntroAt },
+            );
+            hydratedPlan = fullSession.plan as PlanState;
+          }
         }
+
+        setPlan(hydratedPlan);
+
 
         setHydratedFromSession(true);
       } catch (err: any) {
