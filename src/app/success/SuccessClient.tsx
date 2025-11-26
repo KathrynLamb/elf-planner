@@ -429,47 +429,7 @@ export default function SuccessClient() {
                   sessionId={sessionId}
                 />
 
-                {/* Email reminder card */}
-                <div className="rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
-                  <h2 className="text-sm font-semibold text-slate-50">
-                    Get a gentle nudge each evening
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-300">
-                    Pop in your email and I’ll send you a short reminder each
-                    day with what to set up at bedtime for the next morning.
-                  </p>
-
-                  <form
-                    onSubmit={handleEmailReminder}
-                    className="mt-3 flex flex-col gap-2 sm:flex-row"
-                  >
-                    <input
-                      type="email"
-                      required
-                      value={reminderEmail}
-                      onChange={(e) => setReminderEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-50 placeholder:text-slate-500"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
-                    >
-                      Turn on reminders
-                    </button>
-                  </form>
-
-                  {reminderErr && (
-                    <p className="mt-2 text-xs text-red-400">
-                      {reminderErr}
-                    </p>
-                  )}
-                  {reminderMsg && (
-                    <p className="mt-2 text-xs text-emerald-300">
-                      {reminderMsg}
-                    </p>
-                  )}
-                </div>
+         
               </>
             )}
 

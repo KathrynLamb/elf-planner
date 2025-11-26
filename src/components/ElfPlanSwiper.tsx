@@ -1,8 +1,9 @@
-'use client';
+// src/components/ElfPlanSwiper.tsx
+"use client";
 
-import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Heart, RefreshCw } from 'lucide-react';
-import SwapFeedbackModal from './SwapFeedbackModal'; // if you have it here
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Heart, RefreshCw } from "lucide-react";
+import SwapFeedbackModal from "./SwapFeedbackModal";
 
 export type SwiperDay = {
   dayNumber: number;
@@ -25,10 +26,8 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
   const [index, setIndex] = useState(0);
   const [internalDays, setInternalDays] = useState<SwiperDay[]>(days);
 
-  // love + seen tracking
-  const [lovedDays, setLovedDays] = useState<Set<number>>(
-    () => new Set(),
-  );
+  // love + seen tracking (still useful for future tweaks / analytics)
+  const [lovedDays, setLovedDays] = useState<Set<number>>(() => new Set());
   const [seenDays, setSeenDays] = useState<Set<number>>(
     () => new Set(internalDays[0] ? [internalDays[0].dayNumber] : []),
   );
@@ -53,32 +52,105 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
 
   const allSeen = seenDays.size === internalDays.length;
   const allLoved = lovedDays.size === internalDays.length;
-  const canCommit = (allSeen || allLoved) && !commitDone;
+
+  // User can now commit any time once the plan is visible.
+  const canCommit = !commitDone;
 
   function next() {
-    if (index < internalDays.length - 1) setIndex(index + 1);
+    if (index < internalDays.length - 1) setIndex((i) => i + 1);
   }
   function prev() {
-    if (index > 0) setIndex(index - 1);
+    if (index > 0) setIndex((i) => i - 1);
   }
 
-  async function handleCommit() {
-    const res = await fetch('/api/commit-plan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
-  
-    const data = await res.json();
-  
-    if (!res.ok) {
-      alert(data.message || 'Error committing plan');
-      return;
+  async function handleCommit(reason: "manual" | "auto" = "manual") {
+    if (commitLoading || commitDone || !sessionId) return;
+
+    // For auto-commit we don't show errors/alerts; just best-effort.
+    const isManual = reason === "manual";
+    if (isManual) {
+      setCommitLoading(true);
+      setCommitError(null);
     }
-  
-    alert('Your plan is locked in! Your first Elf email arrives tomorrow 🎄');
+
+    try {
+      const res = await fetch("/api/commit-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, reason }),
+      });
+
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        if (isManual) {
+          throw new Error(data?.message || "Could not commit plan.");
+        } else {
+          // silent failure for auto-commit
+          console.warn("[ElfPlanSwiper] auto-commit failed", data);
+          return;
+        }
+      }
+
+      setCommitDone(true);
+    } catch (err: any) {
+      console.error("[ElfPlanSwiper] commit error", err);
+      if (reason === "manual") {
+        setCommitError(
+          err?.message ||
+            "Something went wrong locking in this plan. Please try again.",
+        );
+      }
+    } finally {
+      if (reason === "manual") {
+        setCommitLoading(false);
+      }
+    }
   }
-  
+
+  // Auto-commit when the user leaves / hides the page (best-effort).
+  useEffect(() => {
+    if (typeof window === "undefined" || !sessionId) return;
+
+    const autoCommit = () => {
+      if (commitDone || commitLoading) return;
+
+      try {
+        const payload = JSON.stringify({ sessionId, reason: "auto" });
+        if (navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: "application/json" });
+          navigator.sendBeacon("/api/commit-plan", blob);
+        } else {
+          // fire-and-forget fetch; ignore result
+          void fetch("/api/commit-plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true,
+          });
+        }
+        setCommitDone(true);
+      } catch (e) {
+        console.error("[ElfPlanSwiper] auto-commit exception", e);
+      }
+    };
+
+    const handleBeforeUnload = () => autoCommit();
+    const handlePageHide = () => autoCommit();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") autoCommit();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [sessionId, commitDone, commitLoading]);
 
   async function handleLove() {
     if (!current) return;
@@ -90,7 +162,7 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
     });
   }
 
-  // SWAP – keep your existing modal wiring; here’s a simple version:
+  // SWAP modal wiring
   const [swapOpen, setSwapOpen] = useState(false);
   function openSwap() {
     setSwapOpen(true);
@@ -103,36 +175,6 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
       ),
     );
   }
-
-//   async function handleCommit() {
-//     if (commitLoading || commitDone || !sessionId) return;
-//     setCommitLoading(true);
-//     setCommitError(null);
-
-//     try {
-//       const res = await fetch('/api/commit-plan', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ sessionId }),
-//       });
-
-//       const data = await res.json();
-
-//       if (!res.ok) {
-//         throw new Error(data.message || 'Could not commit plan.');
-//       }
-
-//       setCommitDone(true);
-//     } catch (err: any) {
-//       console.error('[ElfPlanSwiper] commit error', err);
-//       setCommitError(
-//         err?.message ||
-//           'Something went wrong locking in this plan. Please try again.',
-//       );
-//     } finally {
-//       setCommitLoading(false);
-//     }
-//   }
 
   if (!current) return null;
 
@@ -200,27 +242,40 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
           </button>
         </div>
 
-        {/* Commit CTA */}
+        {/* Commit CTA – now always available once the plan is visible */}
         {canCommit && (
           <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-            <p className="mb-3 text-xs text-emerald-100">
-              Happy with this plan? Lock it in and Merry will email you an
-              overview, a full materials list for the month, and then a tiny
-              nudge each morning.
+            <p className="mb-2 text-xs text-emerald-100">
+              Happy with the gist of this plan? You don’t have to read every
+              single day right now.
+            </p>
+            <p className="mb-3 text-[11px] text-emerald-100">
+              Lock it in and Merry will email you an overview, a full materials
+              list, and then a tiny nudge each morning. If you simply close this
+              page later, she’ll also treat this as your final plan and start
+              the emails automatically.
             </p>
             <button
-              onClick={handleCommit}
+              onClick={() => handleCommit("manual")}
               disabled={commitLoading || commitDone}
               className="w-full rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60"
             >
               {commitDone
-                ? 'Plan locked in ✅'
+                ? "Plan locked in ✅"
                 : commitLoading
-                ? 'Locking in your plan…'
-                : 'Lock in this Elf plan & start emails'}
+                ? "Locking in your plan…"
+                : "Lock in this Elf plan & start emails"}
             </button>
             {commitError && (
               <p className="mt-2 text-[11px] text-red-400">{commitError}</p>
+            )}
+            {(allSeen || allLoved) && (
+              <p className="mt-2 text-[10px] text-emerald-300">
+                {allLoved
+                  ? "You’ve loved every day in this plan."
+                  : "You’ve scrolled through the whole month."}{" "}
+                You can still tweak or swap later if something feels off.
+              </p>
             )}
           </div>
         )}
@@ -253,8 +308,6 @@ export default function ElfPlanSwiper({ days, sessionId }: Props) {
           onSwapComplete={handleSwapComplete}
         />
       )}
-
-
     </div>
   );
 }
