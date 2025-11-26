@@ -21,8 +21,8 @@ export function ElfCheckoutButton({
   ageRange,
   startDate,
   vibe,
-  amount = 9,
-  currency = 'GBP',
+  amount = 14.99,
+  currency = 'USD',
   className,
 }: ElfCheckoutProps) {
   const [loading, setLoading] = React.useState(false);
