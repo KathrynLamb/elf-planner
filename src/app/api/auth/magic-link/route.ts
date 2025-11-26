@@ -4,6 +4,7 @@ import { db, users, loginTokens } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { notifyAdminMagicLink } from '@/lib/notifyAdmin';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const APP_URL = process.env.APP_URL || 'https://elfontheshelf.uk'; // adjust
@@ -16,6 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   const normalized = email.trim().toLowerCase();
+  await notifyAdminMagicLink(normalized);
 
   // 1. Find or create user
   const existing = await db.query.users.findFirst({
