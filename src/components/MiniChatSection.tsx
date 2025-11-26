@@ -208,9 +208,7 @@ export function MiniChatSection() {
                   Ready to get your full plan?
                 </p>
                 <p className="mb-3 text-xs text-slate-200 sm:text-sm">
-                  Check out securely with PayPal and Merry will conjure your
-                  full 24-night Elf plan, with each morning’s email arriving in
-                  time for you to grab anything you need for that night’s setup.
+                Enter your email to get a secure magic link. Tap it to pay once with PayPal, and Merry will unlock your 24-night Elf plan and start sending each morning’s setup email in time to prepare.
                 </p>
                 <GeneratePlanButton sessionId={sessionId} />
               </div>

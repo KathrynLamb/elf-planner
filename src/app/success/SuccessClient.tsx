@@ -674,14 +674,14 @@ export default function SuccessClient() {
             </div>
 
             {/* ELF HOTLINE CARD – only before the plan exists */}
-            {!hasPlanObject && (
+                 {/* ELF HOTLINE CARD – only before the plan exists */}
+                 {!hasPlanObject && (
               <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4 md:px-5 md:py-5">
-
                 {/* Chat window */}
                 <div
-                      ref={chatRef}
-                      className="max-h-64 space-y-2 overflow-auto rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm"
-                    >
+                  ref={chatRef}
+                  className="max-h-64 space-y-2 overflow-auto rounded-xl border border-slate-800 bg-slate-950/70 p-3 text-sm"
+                >
                   {chatMessages.map((m) => (
                     <div
                       key={m.id}
@@ -703,12 +703,14 @@ export default function SuccessClient() {
                       )}
                     </div>
                   ))}
+
                   {chatLoading && (
                     <div className="flex items-center gap-2 text-[12px] text-emerald-200">
                       <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
                       <span>Merry is thinking…</span>
                     </div>
                   )}
+
                   {!chatLoading && chatMessages.length === 0 && (
                     <p className="text-[12px] text-slate-300">
                       Connecting you to Merry at the North Pole…
@@ -729,7 +731,7 @@ export default function SuccessClient() {
                       placeholder={
                         hotlineDone
                           ? 'Merry has everything she needs – you can move to Step 2.'
-                          : "Type what you’d say to Merry on the phone…"
+                          : 'Keep chatting to build a more personalised plan'
                       }
                       disabled={chatLoading || hotlineDone}
                       className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs disabled:opacity-60"
@@ -748,15 +750,16 @@ export default function SuccessClient() {
                 <div className="flex flex-col gap-1 text-[11px] text-slate-400 md:flex-row md:items-center md:justify-between">
                   {hotlineDone ? (
                     <p className="text-emerald-300">
-                      Merry has everything she needs – next up is brewing your
-                      24-night plan.
+                      Merry has everything she needs – when you’re ready, move
+                      on to Step 2 and she’ll brew your plan.
                     </p>
                   ) : (
                     <p>
-                      Too tired to chat? You can still skip this and get a great
-                      plan.
+                      Chatted enough? You can end the chat at any point and
+                      still get a great plan.
                     </p>
                   )}
+
                   {!hotlineDone && (
                     <button
                       type="button"
@@ -768,50 +771,65 @@ export default function SuccessClient() {
                   )}
                 </div>
 
-                {/* STEP 2: generate button, in-flow under hotline */}
-                <div className="mt-3 space-y-2 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-emerald-300">
-                        Next up
-                      </p>
-                      <h2 className="text-sm font-semibold md:text-base">
-                        Brew your 24-morning Elf plan
-                      </h2>
+                {/* STEP 2: generate button – only once hotline is done or skipped */}
+                {canShowGenerate && (
+                  <div className="mt-3 space-y-2 rounded-2xl border border-slate-800 bg-slate-950/80 px-4 py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="mb-1 text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+                          Next up
+                        </p>
+                        <h2 className="text-sm font-semibold md:text-base">
+                          Brew your 24-morning Elf plan
+                        </h2>
+                      </div>
                     </div>
+
+                    <p className="text-xs text-slate-300">
+                      When you’re ready, click the button and we’ll use
+                      everything Merry has learned to conjure a simple,
+                      low-effort plan: 24 mornings of Elf setups and short notes
+                      from your Elf.
+                    </p>
+
+                    <button
+                      onClick={handleGenerate}
+                      disabled={
+                        isLoading || !sessionId || sessionLoading || !elfSession
+                      }
+                      className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isLoading
+                        ? 'Brewing your Elf mischief…'
+                        : sessionLoading || !elfSession
+                        ? 'Loading your Elf details…'
+                        : 'Generate my 24-morning Elf plan'}
+                    </button>
+
+                    <p className="text-[11px] text-slate-400">
+                      You’ll see your full plan below once it’s brewed.
+                    </p>
                   </div>
-
-                  <p className="text-xs text-slate-300">
-                    When you’re ready, click the button and we’ll use everything
-                    Merry has learned to conjure a simple, low-effort plan:
-                    30 mornings of Elf setups and short notes from your Elf.
-                  </p>
-
-                  <button
-                    onClick={handleGenerate}
-                    disabled={
-                      isLoading ||
-                      !sessionId ||
-                      sessionLoading ||
-                      !elfSession ||
-                      !canShowGenerate
-                    }
-                    className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isLoading
-                      ? 'Brewing your Elf mischief…'
-                      : !canShowGenerate
-                      ? 'Finish or skip the hotline to unlock'
-                      : sessionLoading || !elfSession
-                      ? 'Loading your Elf details…'
-                      : 'Generate my 24-morning Elf plan'}
-                  </button>
-
-                  <p className="text-[11px] text-slate-400">
-                    You’ll see your full plan below once it’s brewed.
-                  </p>
-                </div>
+                )}
               </div>
+            )}
+
+            {/* When plan exists, show it full-width under the header */}
+            {hasPlanObject && (
+              <ElfPlanSwiper
+                days={(plan as ElfPlanObject).days!.map((day) => ({
+                  dayNumber: day.dayNumber!,
+                  title: day.title!,
+                  description: day.description!,
+                  noteFromElf: day.noteFromElf ?? null,
+                  morningMoment: (day as any).morningMoment ?? null,
+                  materials: (day as any).materials ?? [],
+                  weekday: day.weekday,
+                  date: day.date,
+                  imageUrl: (day as any).imageUrl ?? null,
+                }))}
+                sessionId={sessionId}
+              />
             )}
 
             {/* When plan exists, show it full-width under the header */}
@@ -834,7 +852,7 @@ export default function SuccessClient() {
               )}
           </div>
 
-          {/* RIGHT: Elf card (only before the plan exists) */}
+
           {!hasPlanObject && (
             <div className="relative mt-4 flex items-center justify-center md:mt-0">
               <div className="absolute -inset-1 rounded-3xl bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.35),transparent_55%),radial-gradient(circle_at_80%_100%,rgba(56,189,248,0.25),transparent_55%)] opacity-80 blur-2xl" />
