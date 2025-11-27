@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
                 ${materialsListHtml}
 
                 <p style="margin:20px 0 8px; font-size:14px; line-height:1.6; color:#e5e7eb;">
-                  Each evening you’ll get a quick email with:
+                  Each morning you’ll get a quick email with:
                 </p>
                 <ul style="margin:0 0 16px; padding-left:20px; font-size:13px; line-height:1.6; color:#e5e7eb;">
                   <li>tonight’s Elf setup in clear, human language,</li>

@@ -71,7 +71,7 @@ async function getAccessToken(): Promise<string> {
 type CreateBody = {
   sessionId: string;
   amount: number; // e.g. 9
-  currency: 'GBP' | 'USD' | 'EUR';
+  currency:  'USD';
   childName: string;
   ageRange: string;
   startDate: string;

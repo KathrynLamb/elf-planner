@@ -35,9 +35,15 @@ type ElfPlanObject = {
 
 type PlanState = string | ElfPlanObject | null;
 
+type CaptureStatus = 'idle' | 'pending' | 'ok' | 'error';
+
 export default function SuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id') ?? undefined;
+  const provider = searchParams.get('provider');
+  const status = searchParams.get('status');
+  // PayPal sends the order ID back as the `token` query param
+  const paypalOrderId = searchParams.get('token');
 
   const [elfSession, setElfSession] = useState<ElfSession | null>(null);
   const [plan, setPlan] = useState<PlanState>(null);
@@ -51,23 +57,26 @@ export default function SuccessClient() {
 
   const [hydratedFromSession, setHydratedFromSession] = useState(false);
 
+  // PayPal capture state
+  const [captureStatus, setCaptureStatus] = useState<CaptureStatus>('idle');
+  const [captureError, setCaptureError] = useState<string | null>(null);
 
-    // elfSession is a light client-side shape; getChildrenNames only
-    // needs childName / inferredProfile, so a narrow cast here is fine.
-    const names = elfSession ? getChildrenNames(elfSession as any) : [];
+  // elfSession is a light client-side shape; getChildrenNames only
+  // needs childName / inferredProfile, so a narrow cast here is fine.
+  const names = elfSession ? getChildrenNames(elfSession as any) : [];
 
-    let title: string;
-    if (names.length === 0) {
-      title = "Here’s your family’s 24-night Elf plan 🎄";
-    } else if (names.length === 1) {
-      title = `Here’s ${names[0]}’s 24-night Elf plan 🎄`;
-    } else if (names.length === 2) {
-      title = `Here’s ${names[0]} & ${names[1]}’s 24-night Elf plan 🎄`;
-    } else {
-      const last = names[names.length - 1];
-      const rest = names.slice(0, -1).join(', ');
-      title = `Here’s ${rest} & ${last}’s 24-night Elf plan 🎄`;
-    }
+  let title: string;
+  if (names.length === 0) {
+    title = "Here’s your family’s 24-night Elf plan 🎄";
+  } else if (names.length === 1) {
+    title = `Here’s ${names[0]}’s 24-night Elf plan 🎄`;
+  } else if (names.length === 2) {
+    title = `Here’s ${names[0]} & ${names[1]}’s 24-night Elf plan 🎄`;
+  } else {
+    const last = names[names.length - 1];
+    const rest = names.slice(0, -1).join(', ');
+    title = `Here’s ${rest} & ${last}’s 24-night Elf plan 🎄`;
+  }
 
   // Derived helpers for plan shape
   const planObject =
@@ -85,6 +94,55 @@ export default function SuccessClient() {
       localStorage.removeItem('elf-mini-session-id');
     }
   }, []);
+
+  // -------- PayPal CAPTURE on successful return --------
+  useEffect(() => {
+    // Only for PayPal, when PayPal says "approved" and we have an order id
+    if (provider !== 'paypal') return;
+    if (status !== 'approved') return;
+    if (!paypalOrderId) return;
+    if (captureStatus !== 'idle') return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setCaptureStatus('pending');
+        setCaptureError(null);
+
+        const res = await fetch('/api/paypal-elf/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderID: paypalOrderId }),
+        });
+
+        const data = await res.json().catch(() => ({} as any));
+
+        if (!res.ok || !data?.ok) {
+          throw new Error(
+            data?.error || 'PayPal capture failed – please contact support.',
+          );
+        }
+
+        if (!cancelled) {
+          setCaptureStatus('ok');
+        }
+      } catch (err: any) {
+        console.error('[Success page] PayPal capture error', err);
+        if (!cancelled) {
+          setCaptureStatus('error');
+          setCaptureError(
+            err?.message ||
+              'We had an issue finishing your PayPal payment. Please contact support with a screenshot.',
+          );
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [provider, status, paypalOrderId, captureStatus]);
 
   // -------- Load session from backend --------
   useEffect(() => {
@@ -142,10 +200,7 @@ export default function SuccessClient() {
           vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
         });
 
-        // If the plan is already present in the session, hydrate it
-            // If a plan is already present, only hydrate it if it matches
-        // the *latest* chat info. If the chat is newer than the plan,
-        // treat the old plan as stale and let the Success page regenerate.
+        // If a plan is already present in the session, hydrate it (unless stale)
         let hydratedPlan: PlanState = null;
 
         if (fullSession.plan) {
@@ -180,8 +235,6 @@ export default function SuccessClient() {
         }
 
         setPlan(hydratedPlan);
-
-
         setHydratedFromSession(true);
       } catch (err: any) {
         console.error(err);
@@ -349,6 +402,18 @@ export default function SuccessClient() {
     ? `${elfSession.childName}’s`
     : 'your';
 
+  // Helper for payment status label
+  const paymentLabel =
+    provider === 'paypal'
+      ? captureStatus === 'pending'
+        ? 'Finishing your PayPal payment…'
+        : captureStatus === 'ok'
+        ? 'Payment complete'
+        : captureStatus === 'error'
+        ? 'Payment issue – please contact support'
+        : 'Processing payment…'
+      : 'Payment complete';
+
   // -------- JSX --------
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
@@ -364,7 +429,7 @@ export default function SuccessClient() {
           <div className="space-y-6">
             <div>
               <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-300">
-                Payment complete
+                {paymentLabel}
                 <span className="h-1 w-1 rounded-full bg-emerald-300" />
                 Saved in your account
               </p>
@@ -377,13 +442,16 @@ export default function SuccessClient() {
 
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-[11px] text-slate-300">
-                  ~1 minute
+                  ~5 minutes
                   <span className="h-1 w-1 rounded-full bg-emerald-300" />
                   {plan ? 'Your plan is ready' : 'Your plan is being prepared'}
                 </span>
               </div>
 
               {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+              {captureError && (
+                <p className="mt-2 text-xs text-red-400">{captureError}</p>
+              )}
             </div>
 
             {/* BREWING INDICATOR – ONLY while no plan at all */}
@@ -399,9 +467,9 @@ export default function SuccessClient() {
                       Merry is putting your 24-night Elf plan together…
                     </p>
                     <p className="mt-1 text-xs text-slate-300">
-                      This usually takes under a minute. We’re using everything
-                      you shared about your kiddo and your vibe to build a
-                      simple, low-effort plan.
+                      This may take a few minutes. Please hold on. We’re using
+                      everything you shared about your kiddo and your vibe to
+                      build a simple, low-effort plan.
                     </p>
                   </div>
                 </div>
@@ -447,8 +515,6 @@ export default function SuccessClient() {
                   }))}
                   sessionId={sessionId}
                 />
-
-         
               </>
             )}
 
