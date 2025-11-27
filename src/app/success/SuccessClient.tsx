@@ -35,15 +35,9 @@ type ElfPlanObject = {
 
 type PlanState = string | ElfPlanObject | null;
 
-type CaptureStatus = 'idle' | 'pending' | 'ok' | 'error';
-
 export default function SuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id') ?? undefined;
-  const provider = searchParams.get('provider');
-  const status = searchParams.get('status');
-  // PayPal sends the order ID back as the `token` query param
-  const paypalOrderId = searchParams.get('token');
 
   const [elfSession, setElfSession] = useState<ElfSession | null>(null);
   const [plan, setPlan] = useState<PlanState>(null);
@@ -56,10 +50,6 @@ export default function SuccessClient() {
   const [reminderMsg, setReminderMsg] = useState<null | string>(null);
 
   const [hydratedFromSession, setHydratedFromSession] = useState(false);
-
-  // PayPal capture state
-  const [captureStatus, setCaptureStatus] = useState<CaptureStatus>('idle');
-  const [captureError, setCaptureError] = useState<string | null>(null);
 
   // elfSession is a light client-side shape; getChildrenNames only
   // needs childName / inferredProfile, so a narrow cast here is fine.
@@ -95,195 +85,7 @@ export default function SuccessClient() {
     }
   }, []);
 
-  // -------- PayPal CAPTURE on successful return --------
-  useEffect(() => {
-    // Only for PayPal, when PayPal says "approved" and we have an order id
-    if (provider !== 'paypal') return;
-    if (status !== 'approved') return;
-    if (!paypalOrderId) return;
-    if (captureStatus !== 'idle') return;
-
-    let cancelled = false;
-
-    (async () => {
-      try {
-        setCaptureStatus('pending');
-        setCaptureError(null);
-
-        const res = await fetch('/api/paypal-elf/capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderID: paypalOrderId }),
-        });
-
-        const data = await res.json().catch(() => ({} as any));
-
-        if (!res.ok || !data?.ok) {
-          throw new Error(
-            data?.error || 'PayPal capture failed – please contact support.',
-          );
-        }
-
-        if (!cancelled) {
-          setCaptureStatus('ok');
-        }
-      } catch (err: any) {
-        console.error('[Success page] PayPal capture error', err);
-        if (!cancelled) {
-          setCaptureStatus('error');
-          setCaptureError(
-            err?.message ||
-              'We had an issue finishing your PayPal payment. Please contact support with a screenshot.',
-          );
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [provider, status, paypalOrderId, captureStatus]);
-
-  // -------- Load session from backend --------
-  useEffect(() => {
-    if (!sessionId) return;
-
-    let cancelled = false;
-
-    async function loadSession() {
-      setSessionLoading(true);
-      setError(null);
-
-      try {
-        const res = await fetch(`/api/elf-session?sessionId=${sessionId}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (!cancelled) {
-            throw new Error(
-              data?.message || 'Could not load your Elf session details.',
-            );
-          }
-        }
-
-        const data = await res.json();
-        if (cancelled) return;
-
-        const fullSession = data.session as StoredElfPlan;
-        console.log('[Success page] full Elf session from API:', fullSession);
-
-        // Ensure the session belongs to THIS user
-        const authRes = await fetch('/api/auth/me');
-        const auth = authRes.ok ? await authRes.json() : { email: null };
-
-        if (
-          fullSession.userEmail &&
-          auth.email &&
-          fullSession.userEmail !== auth.email
-        ) {
-          console.warn(
-            '[Success page] Session does not belong to current user. Ignoring stale/hijacked session.',
-          );
-
-          setElfSession(null);
-          setPlan(null);
-          setHydratedFromSession(true);
-          return;
-        }
-
-        localStorage.removeItem('elf-mini-session-id');
-
-        setElfSession({
-          sessionId: fullSession.sessionId,
-          childName: fullSession.childName ?? 'your child',
-          ageRange: fullSession.ageRange ?? '',
-          startDate: fullSession.startDate ?? '',
-          vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
-        });
-
-        // If a plan is already present in the session, hydrate it (unless stale)
-        let hydratedPlan: PlanState = null;
-
-        if (fullSession.plan) {
-          const planGeneratedAt = fullSession.planGeneratedAt ?? 0;
-
-          // introChatTranscript is an array of { at, messages, reply }
-          const transcript = Array.isArray(fullSession.introChatTranscript)
-            ? fullSession.introChatTranscript
-            : [];
-
-          const lastIntroAt = transcript.reduce((max: number, turn: any) => {
-            const t = typeof turn?.at === 'number' ? turn.at : 0;
-            return t > max ? t : max;
-          }, 0);
-
-          const isPlanStale =
-            planGeneratedAt > 0 && lastIntroAt > 0 && planGeneratedAt < lastIntroAt;
-
-          if (isPlanStale) {
-            console.log(
-              '[Success page] existing plan is older than latest chat – treating as stale and regenerating',
-              { planGeneratedAt, lastIntroAt },
-            );
-            hydratedPlan = null; // force auto-generate
-          } else {
-            console.log(
-              '[Success page] hydrating existing plan from session',
-              { planGeneratedAt, lastIntroAt },
-            );
-            hydratedPlan = fullSession.plan as PlanState;
-          }
-        }
-
-        setPlan(hydratedPlan);
-        setHydratedFromSession(true);
-      } catch (err: any) {
-        console.error(err);
-        if (!cancelled) {
-          setError(
-            err.message ||
-              "I couldn't load your Elf session. If this keeps happening, please start again from the homepage.",
-          );
-        }
-        setHydratedFromSession(true);
-      } finally {
-        if (!cancelled) setSessionLoading(false);
-      }
-    }
-
-    loadSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId]);
-
-  // -------- Plan text formatter (for fallback view) --------
-  function formatPlanForDisplay(planState: PlanState): string {
-    if (!planState) return '';
-
-    if (typeof planState === 'string') return planState;
-
-    const overview = planState.planOverview
-      ? `${planState.planOverview.trim()}\n\n`
-      : '';
-
-    const dayLines =
-      planState.days?.map((day, idx) => {
-        const dayNumber = day.dayNumber ?? idx + 1;
-        const title = day.title ? ` – ${day.title}` : '';
-        const desc = day.description?.trim() ?? '';
-        const note = day.noteFromElf
-          ? `\nNote from your Elf: ${day.noteFromElf.trim()}`
-          : '';
-
-        return `Day ${dayNumber}${title}\n${desc}${note}`;
-      }) ?? [];
-
-    return overview + dayLines.join('\n\n');
-  }
-
-  const planText = formatPlanForDisplay(plan);
-
-  // -------- Generate full plan --------
+  // -------- Generate full plan (used by loader + manual retry) --------
   async function handleGenerate() {
     setError(null);
 
@@ -342,16 +144,150 @@ export default function SuccessClient() {
     }
   }
 
-  // -------- Auto-generate when we can (no button, no chat) --------
+  // -------- Load session from backend + trigger generation if needed --------
   useEffect(() => {
     if (!sessionId) return;
-    if (!hydratedFromSession) return;
-    if (sessionLoading) return;
-    if (isLoading) return;
-    if (plan) return; // already have a plan (string or object)
 
-    void handleGenerate();
-  }, [sessionId, hydratedFromSession, sessionLoading, isLoading, plan]);
+    let cancelled = false;
+
+    async function loadSession() {
+      setSessionLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch(`/api/elf-session?sessionId=${sessionId}`);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (!cancelled) {
+            throw new Error(
+              data?.message || 'Could not load your Elf session details.',
+            );
+          }
+        }
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        const fullSession = data.session as StoredElfPlan;
+        console.log('[Success page] full Elf session from API:', fullSession);
+
+        // Ensure the session belongs to THIS user
+        const authRes = await fetch('/api/auth/me');
+        const auth = authRes.ok ? await authRes.json() : { email: null };
+
+        if (
+          fullSession.userEmail &&
+          auth.email &&
+          fullSession.userEmail !== auth.email
+        ) {
+          console.warn(
+            '[Success page] Session does not belong to current user. Ignoring stale/hijacked session.',
+          );
+
+          setElfSession(null);
+          setPlan(null);
+          setHydratedFromSession(true);
+          return;
+        }
+
+        localStorage.removeItem('elf-mini-session-id');
+
+        setElfSession({
+          sessionId: fullSession.sessionId,
+          childName: fullSession.childName ?? 'your child',
+          ageRange: fullSession.ageRange ?? '',
+          startDate: fullSession.startDate ?? '',
+          vibe: (fullSession.vibe ?? 'silly') as ElfVibe,
+        });
+
+        // Decide whether to hydrate an existing plan or generate a new one
+        let hydratedPlan: PlanState = null;
+
+        if (fullSession.plan) {
+          const planGeneratedAt = fullSession.planGeneratedAt ?? 0;
+
+          // introChatTranscript is an array of { at, messages, reply }
+          const transcript = Array.isArray(fullSession.introChatTranscript)
+            ? fullSession.introChatTranscript
+            : [];
+
+          const lastIntroAt = transcript.reduce((max: number, turn: any) => {
+            const t = typeof turn?.at === 'number' ? turn.at : 0;
+            return t > max ? t : max;
+          }, 0);
+
+          const isPlanStale =
+            planGeneratedAt > 0 && lastIntroAt > 0 && planGeneratedAt < lastIntroAt;
+
+          if (isPlanStale) {
+            console.log(
+              '[Success page] existing plan is older than latest chat – treating as stale and regenerating',
+              { planGeneratedAt, lastIntroAt },
+            );
+            hydratedPlan = null; // force auto-generate
+          } else {
+            console.log(
+              '[Success page] hydrating existing plan from session',
+              { planGeneratedAt, lastIntroAt },
+            );
+            hydratedPlan = fullSession.plan as PlanState;
+          }
+        }
+
+        setPlan(hydratedPlan);
+        setHydratedFromSession(true);
+
+        // If there’s no usable plan, trigger generation immediately
+        if (!hydratedPlan && !cancelled) {
+          console.log('[Success page] no existing plan – triggering generate');
+          await handleGenerate();
+        }
+      } catch (err: any) {
+        console.error(err);
+        if (!cancelled) {
+          setError(
+            err.message ||
+              "I couldn't load your Elf session. If this keeps happening, please start again from the homepage.",
+          );
+        }
+        setHydratedFromSession(true);
+      } finally {
+        if (!cancelled) setSessionLoading(false);
+      }
+    }
+
+    loadSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  // -------- Plan text formatter (for fallback view) --------
+  function formatPlanForDisplay(planState: PlanState): string {
+    if (!planState) return '';
+
+    if (typeof planState === 'string') return planState;
+
+    const overview = planState.planOverview
+      ? `${planState.planOverview.trim()}\n\n`
+      : '';
+
+    const dayLines =
+      planState.days?.map((day, idx) => {
+        const dayNumber = day.dayNumber ?? idx + 1;
+        const dayTitle = day.title ? ` – ${day.title}` : '';
+        const desc = day.description?.trim() ?? '';
+        const note = day.noteFromElf
+          ? `\nNote from your Elf: ${day.noteFromElf.trim()}`
+          : '';
+
+        return `Day ${dayNumber}${dayTitle}\n${desc}${note}`;
+      }) ?? [];
+
+    return overview + dayLines.join('\n\n');
+  }
+
+  const planText = formatPlanForDisplay(plan);
 
   // -------- Save nightly email reminders --------
   async function handleEmailReminder(e: React.FormEvent) {
@@ -402,18 +338,6 @@ export default function SuccessClient() {
     ? `${elfSession.childName}’s`
     : 'your';
 
-  // Helper for payment status label
-  const paymentLabel =
-    provider === 'paypal'
-      ? captureStatus === 'pending'
-        ? 'Finishing your PayPal payment…'
-        : captureStatus === 'ok'
-        ? 'Payment complete'
-        : captureStatus === 'error'
-        ? 'Payment issue – please contact support'
-        : 'Processing payment…'
-      : 'Payment complete';
-
   // -------- JSX --------
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-50">
@@ -429,7 +353,7 @@ export default function SuccessClient() {
           <div className="space-y-6">
             <div>
               <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-300">
-                {paymentLabel}
+                Payment complete
                 <span className="h-1 w-1 rounded-full bg-emerald-300" />
                 Saved in your account
               </p>
@@ -449,9 +373,6 @@ export default function SuccessClient() {
               </div>
 
               {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-              {captureError && (
-                <p className="mt-2 text-xs text-red-400">{captureError}</p>
-              )}
             </div>
 
             {/* BREWING INDICATOR – ONLY while no plan at all */}
@@ -469,7 +390,7 @@ export default function SuccessClient() {
                     <p className="mt-1 text-xs text-slate-300">
                       This may take a few minutes. Please hold on. We’re using
                       everything you shared about your kiddo and your vibe to
-                      build a simple, low-effort plan.
+                      build a simple plan that actually fits your December.
                     </p>
                   </div>
                 </div>
