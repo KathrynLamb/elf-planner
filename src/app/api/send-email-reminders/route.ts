@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
           prompt: constructedPrompt,
           size: 'auto',
           n: 1,
-          quality: 'low'
+          quality: 'high'
         });
 
         const first = imgRes.data?.[0] as { b64_json?: string } | undefined;

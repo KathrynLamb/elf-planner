@@ -20,7 +20,6 @@ Soft warm fairy lights and bokeh in the background, shallow depth of field.
 Wide shot that clearly shows how to recreate the setup: include the elf, all key props, and how things are attached or arranged.
 Vertical framing as if for Instagram or Pinterest, no text overlays.
 No people or children in frame, just the elf and environment.
-A small handwritten note from the elf is visible in the scene, but not zoomed in.
 Friendly red-and-green Christmas elf doll with a kind, playful face.
 `;
 
@@ -129,7 +128,7 @@ export async function GET(req: NextRequest) {
             prompt: constructedPrompt,
             size: 'auto',
             n: 1,
-            quality: 'low'
+            quality: 'high'
           });
 
           const first = imgRes.data?.[0] as { b64_json?: string } | undefined;

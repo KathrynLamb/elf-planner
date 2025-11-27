@@ -41,21 +41,47 @@ export function MiniChatSection() {
   const sectionRef = React.useRef<HTMLElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Scroll to bottom on new messages
-  React.useEffect(() => {
+  // Helper to keep the latest message in view
+  const scrollChatToBottom = React.useCallback(() => {
     const el = chatScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [messages, isThinking]);
+  }, []);
+
+  // Scroll to bottom when messages / typing indicator change
+  React.useEffect(() => {
+    scrollChatToBottom();
+  }, [messages, isThinking, scrollChatToBottom]);
+
+  // When viewport height changes (e.g. keyboard opens), keep bottom in view
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      scrollChatToBottom();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [scrollChatToBottom]);
 
   function focusSectionForMobile() {
     if (typeof window === "undefined") return;
-    const section = sectionRef.current;
-    if (!section) return;
+    const isSmallScreen = window.innerWidth < 640;
 
-    const rect = section.getBoundingClientRect();
-    const scrollY = window.scrollY + rect.top;
-    window.scrollTo({ top: scrollY, behavior: "smooth" });
+    if (!isSmallScreen) {
+      // Desktop: just keep the chat scrolled
+      scrollChatToBottom();
+      return;
+    }
+
+    const section = sectionRef.current;
+
+    // Give iOS a moment to open the keyboard, then scroll
+    setTimeout(() => {
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+      scrollChatToBottom();
+    }, 80);
   }
 
   function pushAssistantMessage(content: string) {
@@ -88,7 +114,6 @@ export function MiniChatSection() {
     setInput("");
     setError(null);
 
-    // Phase-specific handling
     if (phase === "offer") {
       handleOfferPhase(text);
       return;
@@ -100,14 +125,12 @@ export function MiniChatSection() {
     }
 
     if (phase === "magicSent") {
-      // After magic link is sent, keep it super simple.
       pushAssistantMessage(
         "I’ve already sent your magic link — check your inbox (and spam/promotions just in case). Tap it when you’re ready, and I’ll be waiting with your full plan. 💌"
       );
       return;
     }
 
-    // Default: discovery phase, talk to the mini-chat API
     await handleDiscoveryPhase(history);
   }
 
@@ -149,10 +172,8 @@ export function MiniChatSection() {
         content: data.reply,
       };
 
-      // Add Merry's AI reply
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // If Merry has enough info, transition into the pricing/flow offer
       if (data.done && phase === "discovery") {
         const offerMessage =
           "Okay, I’ve got a really clear picture now – enough to brew a full 24-morning elf plan that actually fits your kiddo and your energy.\n\nHere’s how it works: I’ll create a 24-morning plan with simple nightly notes and materials lists so you’re not scrambling at 10pm. It’s a one-time $14.99. You’ll get a magic link by email, pay once via PayPal, then your full plan unlocks on the site and I’ll email you each night’s setup in time for bedtime.\n\nWould you like me to set up your full 24-morning plan and send your magic link?";
@@ -175,9 +196,10 @@ export function MiniChatSection() {
   function handleOfferPhase(text: string) {
     const lower = text.toLowerCase();
 
-    const isYes = /^(yes|yeah|yep|sure|ok|okay|alright|go for it|do it|sounds good|let's do it|lets do it|why not)\b/.test(
-      lower
-    );
+    const isYes =
+      /^(yes|yeah|yep|sure|ok|okay|alright|go for it|do it|sounds good|let's do it|lets do it|why not)\b/.test(
+        lower
+      );
     const isNo = /^(no|nah|not now|maybe later|another time)/.test(lower);
 
     if (isNo) {
@@ -196,7 +218,6 @@ export function MiniChatSection() {
       return;
     }
 
-    // Not clearly yes/no – gently steer back to the question
     pushAssistantMessage(
       "Totally fair! If you’d like me to go ahead and set up your full 24-morning plan for $14.99, just reply “yes”. If not, you can say “no” and we’ll just keep chatting ideas."
     );
@@ -255,7 +276,7 @@ export function MiniChatSection() {
       ref={sectionRef}
       className="relative w-full bg-slate-950"
     >
-      <div className="mx-auto flex min-h-[100dvh] w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[100vh] w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-8">
         {/* Chat header */}
         <header className="mb-3 flex items-center gap-3 sm:mb-4">
           <div className="h-9 w-9 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 sm:h-10 sm:w-10" />
@@ -297,7 +318,6 @@ export function MiniChatSection() {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {isThinking && (
               <div className="flex justify-start">
                 <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/90 px-3 py-2 text-[11px] text-slate-200">
@@ -334,11 +354,7 @@ export function MiniChatSection() {
                 disabled={!input.trim() || isLoading}
                 className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading && phase === "collectEmail"
-                  ? "Sending…"
-                  : isLoading
-                  ? "Sending…"
-                  : "Send"}
+                {isLoading ? "Sending…" : "Send"}
               </button>
             </form>
           </div>

@@ -52,11 +52,9 @@ export default function SuccessClient() {
   const [hydratedFromSession, setHydratedFromSession] = useState(false);
 
 
-// elfSession is a light client-side shape; getChildrenNames only
-// needs childName / inferredProfile, so a narrow cast here is fine.
-const names = elfSession ? getChildrenNames(elfSession as any) : [];
-
-
+    // elfSession is a light client-side shape; getChildrenNames only
+    // needs childName / inferredProfile, so a narrow cast here is fine.
+    const names = elfSession ? getChildrenNames(elfSession as any) : [];
 
     let title: string;
     if (names.length === 0) {
