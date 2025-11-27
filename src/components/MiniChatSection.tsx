@@ -38,51 +38,28 @@ export function MiniChatSection() {
   const [phase, setPhase] = React.useState<Phase>("discovery");
 
   const chatScrollRef = React.useRef<HTMLDivElement | null>(null);
-  const sectionRef = React.useRef<HTMLElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Helper to keep the latest message in view
+  // --- keep bottom message in view ----------------------------------------
+
   const scrollChatToBottom = React.useCallback(() => {
     const el = chatScrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, []);
 
-  // Scroll to bottom when messages / typing indicator change
+  // Whenever messages or typing indicator change, pin to bottom
   React.useEffect(() => {
     scrollChatToBottom();
   }, [messages, isThinking, scrollChatToBottom]);
 
-  // When viewport height changes (e.g. keyboard opens), keep bottom in view
+  // When viewport changes (keyboard open/close), keep bottom visible
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    const handleResize = () => {
-      scrollChatToBottom();
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const handler = () => scrollChatToBottom();
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
   }, [scrollChatToBottom]);
-
-  function focusSectionForMobile() {
-    if (typeof window === "undefined") return;
-    const isSmallScreen = window.innerWidth < 640;
-
-    if (!isSmallScreen) {
-      // Desktop: just keep the chat scrolled
-      scrollChatToBottom();
-      return;
-    }
-
-    const section = sectionRef.current;
-
-    // Give iOS a moment to open the keyboard, then scroll
-    setTimeout(() => {
-      if (section) {
-        section.scrollIntoView({ behavior: "smooth", block: "end" });
-      }
-      scrollChatToBottom();
-    }, 80);
-  }
 
   function pushAssistantMessage(content: string) {
     const msg: ChatMessage = {
@@ -273,7 +250,6 @@ export function MiniChatSection() {
   return (
     <section
       id="mini-chat"
-      ref={sectionRef}
       className="relative w-full bg-slate-950"
     >
       <div className="mx-auto flex min-h-[100vh] w-full max-w-4xl flex-col px-4 py-4 sm:px-6 sm:py-8">
@@ -295,39 +271,42 @@ export function MiniChatSection() {
           {/* Messages */}
           <div
             ref={chatScrollRef}
-            className="flex min-h-0 flex-1 flex-col space-y-3 overflow-y-auto rounded-3xl bg-slate-950/85 px-3 py-4 sm:px-4 sm:py-5"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-3xl bg-slate-950/85 px-3 py-4 sm:px-4 sm:py-5"
           >
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={
-                  m.role === "assistant"
-                    ? "flex justify-start"
-                    : "flex justify-end"
-                }
-              >
+            {/* Inner flex so messages sit at the bottom when there aren't many */}
+            <div className="mt-auto flex flex-col space-y-3">
+              {messages.map((m) => (
                 <div
+                  key={m.id}
                   className={
                     m.role === "assistant"
-                      ? "max-w-[80%] rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-left text-sm text-slate-50 whitespace-pre-line"
-                      : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40 whitespace-pre-line"
+                      ? "flex justify-start"
+                      : "flex justify-end"
                   }
                 >
-                  {m.content}
+                  <div
+                    className={
+                      m.role === "assistant"
+                        ? "max-w-[80%] rounded-2xl border border-slate-700 bg-slate-800/90 px-4 py-3 text-left text-sm text-slate-50 whitespace-pre-line"
+                        : "max-w-[80%] rounded-2xl bg-emerald-400 px-4 py-3 text-right text-sm text-slate-950 shadow-lg shadow-emerald-400/40 whitespace-pre-line"
+                    }
+                  >
+                    {m.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {isThinking && (
-              <div className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/90 px-3 py-2 text-[11px] text-slate-200">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0.12s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-600 [animation-delay:0.24s]" />
-                  <span>Merry is thinking…</span>
+              {isThinking && (
+                <div className="flex justify-start">
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-slate-800/90 px-3 py-2 text-[11px] text-slate-200">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-500 [animation-delay:0.12s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-600 [animation-delay:0.24s]" />
+                    <span>Merry is thinking…</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Input + footer */}
@@ -347,7 +326,10 @@ export function MiniChatSection() {
                 }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onFocus={focusSectionForMobile}
+                onFocus={() => {
+                  // Let the keyboard finish animating, then pin to bottom
+                  setTimeout(scrollChatToBottom, 80);
+                }}
               />
               <button
                 type="submit"

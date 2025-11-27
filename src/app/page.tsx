@@ -101,8 +101,10 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-4 max-w-xl text-base text-slate-200/95 sm:text-lg">
-              Every night, I'll email you a 2–10 minute Elf setup and tiny note,
+              Starting December 1st, I'll email every morning,  
+              you a complete setup up plan for that evening,
               personalised to your kid, your energy, and your mess tolerance.
+              For just $14.99
             </p>
 
           <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:gap-4">
