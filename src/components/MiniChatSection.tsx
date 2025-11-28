@@ -37,7 +37,7 @@ export function MiniChatSection() {
   const [error, setError] = React.useState<string | null>(null);
   const [phase, setPhase] = React.useState<Phase>('discovery');
 
-  // controls when we show the big “how it works” image
+  // controls when we show the big “how it works” image (currently unused but left in)
   const [hasShownExplainer, setHasShownExplainer] = React.useState(false);
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
@@ -54,6 +54,10 @@ export function MiniChatSection() {
   function looksLikeEmail(text: string) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(text.trim());
+  }
+
+  function countUserTurns(history: ChatMessage[]) {
+    return history.filter((m) => m.role === 'user').length;
   }
 
   async function handleSend(e: React.FormEvent) {
@@ -137,9 +141,19 @@ export function MiniChatSection() {
         setHasShownExplainer(true);
       }
 
-      if (data.done && phase === 'discovery') {
+      // 🔑 SAFETY NET:
+      // – If the model explicitly says done:true, OR
+      // – If we’ve had at least 4 user turns in discovery,
+      //   then move to the “offer” phase and ask for the purchase decision.
+      const userTurns = countUserTurns(history);
+
+      const shouldOffer =
+        (data.done === true || userTurns >= 4) && phase === 'discovery';
+
+      if (shouldOffer) {
         const offerMessage =
           "Okay, I’ve got a really clear picture now – enough to brew a full 24-morning elf plan that actually fits your kiddo and your energy.\n\nHere’s the deal: I’ll build you a 24-morning plan with simple nightly notes and materials lists so you’re not scrambling at 10pm. It’s a one-time $14.99. You’ll get a magic link by email, pay once via PayPal, then your full plan unlocks on the site and I’ll email you each night’s setup in time for bedtime.\n\nWould you like me to set up your full 24-morning plan and send your magic link?";
+
         pushAssistantMessage(offerMessage);
         setPhase('offer');
       }
@@ -156,13 +170,15 @@ export function MiniChatSection() {
   }
 
   function handleOfferPhase(text: string) {
-    const lower = text.toLowerCase();
+    const lower = text.toLowerCase().trim();
 
     const isYes =
-      /^(yes|yeah|yep|sure|ok|okay|alright|go for it|do it|sounds good|let's do it|lets do it|why not)\b/.test(
+      /^(yes|yeah|yep|sure|ok|okay|alright|go for it|do it|sounds good|let's do it|lets do it|why not|absolutely|please do)\b/.test(
         lower,
       );
-    const isNo = /^(no|nah|not now|maybe later|another time)/.test(lower);
+    const isNo = /^(no|nah|not now|maybe later|another time|don’t|dont)/.test(
+      lower,
+    );
 
     if (isNo) {
       pushAssistantMessage(
@@ -247,7 +263,7 @@ export function MiniChatSection() {
       <header className="mb-4 flex items-center gap-3 sm:mb-5">
         <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-rose-400 to-orange-400 sm:h-10 sm:w-10">
           <Image
-                src="/elf_avatar.png"
+            src="/elf_avatar.png"
             alt="Merry the Elf avatar"
             fill
             sizes="40px"
@@ -264,9 +280,8 @@ export function MiniChatSection() {
         </div>
       </header>
 
-      {/* main bubble + explainer */}
+      {/* main bubble */}
       <div className="space-y-4 sm:space-y-5">
-        {/* Merry’s last message with avatar */}
         <div className="max-w-2xl rounded-3xl bg-slate-900 px-4 py-4 text-sm text-slate-50 shadow-[0_18px_45px_rgba(15,23,42,0.85)] sm:px-5 sm:py-5">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 h-7 w-7 overflow-hidden rounded-full bg-slate-800 sm:h-8 sm:w-8">
@@ -289,7 +304,8 @@ export function MiniChatSection() {
           </div>
         </div>
 
-        {showExplainer && (
+        {/* explainer is currently disabled but left here if you want to re-enable */}
+        {showExplainer && false && (
           <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80">
             <div className="relative h-[260px] w-full sm:h-[320px] md:h-[360px]">
               <Image
