@@ -198,52 +198,51 @@ export default function HomePage() {
     </main>
   );
 }
-
 type HeroProps = {
   onChatClick: () => void;
 };
 
 export function HeroSection({ onChatClick }: HeroProps) {
   return (
-    <section className="relative mb-16 h-[420px] overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 sm:h-[460px] lg:h-[520px]">
-      {/* background image */}
+    <section
+      className="
+        relative mb-16 overflow-hidden
+        rounded-3xl border border-slate-800
+        bg-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.9)]
+        h-[420px] sm:h-[460px] lg:h-[520px]
+      "
+    >
+      {/* Background hero image from Nanobanana */}
       <Image
-        src="/elf_plan4.png"
-        alt="Christmas elf helper planning December at a cosy desk"
+        src="https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png"
+        alt="Merry the Elf planning a detailed December Elf plan on a corkboard"
         fill
         priority
-        className="object-cover object-[75%_50%]"
+        className="object-cover object-center"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/85 to-[#020617]/30" />
 
-      {/* hero content */}
-      <div className="relative z-10 flex h-full items-center px-5 py-6 sm:px-8">
-        <div className="max-w-xl space-y-4 sm:space-y-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">
-            Elf magic, without the mental load
-          </p>
+      {/* Gradient overlay so baked-in text stays readable */}
+      {/* <div className="absolute inset-0 bg-gradient-to-r from-[#020617]/95 via-[#020617]/70 to-transparent" /> */}
 
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-50 sm:text-4xl lg:text-5xl">
-            Wake up to Elf magic,
-            <span className="block text-[#1B7D43]">not parent panic.</span>
-          </h1>
-
-          <p className="max-w-lg text-sm text-slate-200/95 sm:text-base">
-            Tell Merry the Elf about your kids in a quick chat and she’ll brew a
-            personalised 24-night Elf plan that fits your energy, your mess
-            tolerance and your kid’s obsessions.
-          </p>
-
-          <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:gap-4">
+      {/* Bottom-left CTA area */}
+      <div className="relative z-10 flex h-full items-end">
+        <div className="w-full px-5 pb-5 sm:px-8 sm:pb-7 lg:pb-9">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <button
               type="button"
               onClick={onChatClick}
-              className="inline-flex items-center justify-center rounded-full bg-[#DD3A33] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#e35b56]"
+              className="
+                inline-flex items-center justify-center
+                rounded-full bg-[#C93227] px-6 py-2.5
+                text-sm font-semibold text-white
+                shadow-lg shadow-black/40
+                transition hover:bg-[#e35b56]
+              "
             >
               Start chatting with Merry
             </button>
 
-            <p className="text-[11px] text-slate-300 sm:text-xs">
+            <p className="text-[11px] text-slate-200/90 sm:text-xs">
               One-off $14.99 · Pay securely via PayPal · No subscriptions
             </p>
           </div>

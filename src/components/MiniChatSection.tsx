@@ -1,93 +1,3 @@
-// "use client";
-
-// import * as React from "react";
-
-// type ChatMessage = {
-//   role: "assistant" | "user";
-//   content: string;
-// };
-
-// export function MiniChatSection() {
-//   const [sessionId] = React.useState(() => {
-//     if (typeof window === "undefined") return "";
-//     const existing = window.localStorage.getItem("elf-mini-session-id");
-//     if (existing) return existing;
-//     const id = crypto.randomUUID();
-//     window.localStorage.setItem("elf-mini-session-id", id);
-//     return id;
-//   });
-
-//   const [lastMessage, setLastMessage] = React.useState<ChatMessage>({
-//     role: "assistant",
-//     content:
-//       "Hey there! Tell me about your kiddo(s) and what kind of elf experience you’re hoping for this December. 🎄",
-//   });
-
-//   const [input, setInput] = React.useState("");
-//   const [isLoading, setIsLoading] = React.useState(false);
-//   const [error, setError] = React.useState<string | null>(null);
-
-//   async function handleSend(e: React.FormEvent) {
-//     e.preventDefault();
-//     if (!input.trim()) return;
-
-//     const text = input.trim();
-//     setLastMessage({ role: "user", content: text });
-//     setInput("");
-//     setIsLoading(true);
-
-//     try {
-//       const res = await fetch("/api/elf-mini-chat", {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           sessionId,
-//           messages: [{ role: "user", content: text }], // send only last message
-//         }),
-//       });
-
-//       if (!res.ok) throw new Error("North Pole wifi dropped 🌨️");
-
-//       const data = await res.json();
-//       setLastMessage({ role: "assistant", content: data.reply });
-//     } catch (err: any) {
-//       setError(err?.message || "Something went wrong.");
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   }
-
-//   return (
-//     <section id="mini-chat" className="w-full bg-slate-950 py-16 px-4">
-//       <div className="mx-auto max-w-xl text-center">
-//         {/* Assistant Message */}
-//         <div className="mb-8 text-left text-lg leading-relaxed text-slate-200 bg-slate-800/60 p-5 rounded-2xl shadow-lg">
-//           {lastMessage.content}
-//         </div>
-
-//         {/* Input */}
-//         <form onSubmit={handleSend} className="flex gap-2">
-//           <input
-//             value={input}
-//             onChange={(e) => setInput(e.target.value)}
-//             className="flex-1 rounded-full bg-slate-900 border border-slate-700 px-4 py-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
-//             placeholder="Type your reply…"
-//           />
-//           <button
-//             type="submit"
-//             disabled={isLoading}
-//             className="rounded-full bg-emerald-400 px-6 py-3 font-semibold text-slate-950 hover:bg-emerald-300 disabled:opacity-40"
-//           >
-//             {isLoading ? "Sending…" : "Send"}
-//           </button>
-//         </form>
-
-//         {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
-//       </div>
-//     </section>
-//   );
-// }
-
 // src/components/MiniChatSection.tsx
 'use client';
 
@@ -335,14 +245,20 @@ export function MiniChatSection() {
     >
       {/* header */}
       <header className="mb-4 flex items-center gap-3 sm:mb-5">
-        <div className="relative h-9 w-9 rounded-full bg-gradient-to-br from-rose-400 to-orange-400 sm:h-10 sm:w-10">
-          <span className="absolute inset-0 rounded-full border border-white/20" />
+        <div className="relative h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-rose-400 to-orange-400 sm:h-10 sm:w-10">
+          <Image
+                src="/elf_avatar.png"
+            alt="Merry the Elf avatar"
+            fill
+            sizes="40px"
+            className="rounded-full object-cover"
+          />
         </div>
         <div className="flex flex-col">
           <p className="text-sm font-semibold text-slate-50 sm:text-base">
             Merry the Elf
           </p>
-          <p className="text-[11px] text-emerald-300 sm:text-xs">
+          <p className="text-[11px] text-[#1C8A3F] sm:text-xs">
             Typically replies in seconds
           </p>
         </div>
@@ -350,13 +266,27 @@ export function MiniChatSection() {
 
       {/* main bubble + explainer */}
       <div className="space-y-4 sm:space-y-5">
+        {/* Merry’s last message with avatar */}
         <div className="max-w-2xl rounded-3xl bg-slate-900 px-4 py-4 text-sm text-slate-50 shadow-[0_18px_45px_rgba(15,23,42,0.85)] sm:px-5 sm:py-5">
-          {lastAssistant?.content}
-          {isThinking && (
-            <span className="mt-2 block text-[11px] text-slate-400">
-              Merry is thinking…
-            </span>
-          )}
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 h-7 w-7 overflow-hidden rounded-full bg-slate-800 sm:h-8 sm:w-8">
+              <Image
+                src="/elf_avatar.png"
+                alt="Merry the Elf avatar"
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex-1">
+              <p>{lastAssistant?.content}</p>
+              {isThinking && (
+                <span className="mt-2 block text-[11px] text-slate-400">
+                  Merry is thinking…
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {showExplainer && (
@@ -367,7 +297,6 @@ export function MiniChatSection() {
                 alt="How it works – Merry the Elf explaining the process"
                 fill
                 className="object-contain sm:object-cover sm:object-top"
-                priority={false}
               />
             </div>
           </div>
@@ -386,7 +315,7 @@ export function MiniChatSection() {
         >
           <input
             ref={inputRef}
-            className="w-full flex-1 rounded-full border border-emerald-400/60 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
+            className="w-full flex-1 rounded-full border border-[#1C8A3F]/80 bg-slate-950/80 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-[#1C8A3F] focus:outline-none focus:ring-2 focus:ring-[#1C8A3F]/60"
             placeholder={
               phase === 'collectEmail'
                 ? 'Type your email, e.g. you@example.com…'
@@ -398,7 +327,7 @@ export function MiniChatSection() {
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#1C8A3F] px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-400/40 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isLoading ? 'Sending…' : 'Send'}
           </button>
