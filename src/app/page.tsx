@@ -113,7 +113,7 @@ export function HeroSection() {
               onClick={() => scrollToSection('mini-chat')}
               className="inline-flex items-center justify-center rounded-xl bg-[#DD3A33] px-7 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/40 transition hover:bg-[#DD3A33]/70"
             >
-              Get your plan
+              Chat about your plan
             </button>
 
           </div>
