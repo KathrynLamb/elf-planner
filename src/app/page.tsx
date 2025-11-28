@@ -51,10 +51,11 @@ type HeroProps = {
   onChatClick: () => void;
 };
 
+
 const DESKTOP_HERO_SRC =
   'https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png';
-// TODO: replace with your Nanobanana mobile hero if you have one
-const MOBILE_HERO_SRC = '/elf_plan-mobile.png';
+const MOBILE_HERO_SRC =
+  'https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png'; // or your mobile-specific asset
 
 export function HeroSection({ onChatClick }: HeroProps) {
   return (
@@ -63,15 +64,15 @@ export function HeroSection({ onChatClick }: HeroProps) {
         relative mb-16 overflow-hidden
         rounded-3xl border border-slate-800
         bg-slate-950 shadow-[0_24px_80px_rgba(15,23,42,0.9)]
-        h-[420px] sm:h-[460px] lg:h-[520px]
+        h-[520px] sm:h-[460px] lg:h-[520px]   /* 👈 taller on mobile */
       "
     >
       {/* Background images */}
       <div className="absolute inset-0">
-        {/* Desktop / tablet hero */}
+        {/* Desktop / tablet */}
         <div className="hidden sm:block absolute inset-0">
           <Image
-            src="https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png"
+            src={DESKTOP_HERO_SRC}
             alt="Merry the Elf planning a detailed December Elf plan on a corkboard"
             fill
             priority
@@ -79,24 +80,25 @@ export function HeroSection({ onChatClick }: HeroProps) {
           />
         </div>
 
-        {/* Mobile hero */}
+        {/* Mobile */}
         <div className="sm:hidden absolute inset-0">
           <Image
-            src='https://img.dashhub.cc/nanobanana/1764365879846-yr8w5gazeds.png'
+            src={MOBILE_HERO_SRC}
             alt="Merry the Elf planning December Elf magic in a cosy room"
             fill
             priority
-            className="object-cover object-center"
+            // 👇 focus slightly below the very top so headline + Merry both fit
+            className="object-cover object-[50%_30%]"
           />
-          {/* Darken bottom so CTA is readable */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#020617]/40 to-[#020617]/85" />
+          {/* Gentle darken at the bottom for the CTA */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#020617]/40 to-[#020617]/90" />
         </div>
       </div>
 
       {/* Bottom-left CTA area */}
       <div className="relative z-10 flex h-full items-end">
-        <div className="w-full px-5 pb-5 sm:px-8 sm:pb-7 lg:pb-9">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="w-full px-5 pb-7 sm:px-8 sm:pb-7 lg:pb-9">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
             <button
               type="button"
               onClick={onChatClick}
@@ -106,6 +108,7 @@ export function HeroSection({ onChatClick }: HeroProps) {
                 text-sm font-semibold text-white
                 shadow-lg shadow-black/40
                 transition hover:bg-[#e35b56]
+                max-w-[260px]          /* 👈 don’t span the whole width */
               "
             >
               Start chatting with Merry
