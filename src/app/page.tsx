@@ -55,7 +55,7 @@ type HeroProps = {
 const DESKTOP_HERO_SRC =
   'https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png';
 const MOBILE_HERO_SRC =
-  'https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png'; // or your mobile-specific asset
+  'https://img.dashhub.cc/nanobanana/1764365879846-yr8w5gazeds.png'; // or your mobile-specific asset
 
 export function HeroSection({ onChatClick }: HeroProps) {
   return (
