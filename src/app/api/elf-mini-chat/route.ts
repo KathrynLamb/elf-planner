@@ -94,10 +94,16 @@ export async function POST(req: NextRequest) {
         ? messages.slice(messages.length - MAX_TURNS)
         : messages;
 
-    // Build conversation items separately and cast to any to keep TS happy
+    // IMPORTANT: map roles to correct content types
     const conversationInputs: any[] = trimmedMessages.map((m) => ({
       role: m.role,
-      content: [{ type: 'input_text', text: m.content }],
+      content: [
+        {
+          // user → input_text, assistant → output_text
+          type: m.role === 'assistant' ? 'output_text' : 'input_text',
+          text: m.content,
+        },
+      ],
     }));
 
     const tBeforeLLM = Date.now();
