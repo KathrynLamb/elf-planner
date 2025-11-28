@@ -1,7 +1,15 @@
+// next.config.js or next.config.mjs or next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "img.dashhub.cc",   // 👈 ADD THIS
+      },
+    ],
+  },
 };
 
 export default nextConfig;
