@@ -71,7 +71,7 @@ export function HeroSection({ onChatClick }: HeroProps) {
         {/* Desktop / tablet hero */}
         <div className="hidden sm:block absolute inset-0">
           <Image
-            src="https://img.dashhub.cc/nanobanana/1764365879846-yr8w5gazeds.png"
+            src="https://img.dashhub.cc/nanobanana/1764354013733-0zj22bj54ekf.png"
             alt="Merry the Elf planning a detailed December Elf plan on a corkboard"
             fill
             priority
@@ -82,7 +82,7 @@ export function HeroSection({ onChatClick }: HeroProps) {
         {/* Mobile hero */}
         <div className="sm:hidden absolute inset-0">
           <Image
-            src={MOBILE_HERO_SRC}
+            src='https://img.dashhub.cc/nanobanana/1764365879846-yr8w5gazeds.png'
             alt="Merry the Elf planning December Elf magic in a cosy room"
             fill
             priority
