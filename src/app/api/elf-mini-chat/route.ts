@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-
+    const tStart = Date.now();
     const baseSession = sessionId ? await getElfSession(sessionId) : null;
 
     // childName is allowed a friendly default for copy; vibe/ageRange are NOT defaulted.
@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
       ageRange ?? existingProfile?.ageRange ?? '(not chosen yet)';
     const vibeForPrompt =
       vibe ?? existingProfile?.vibe ?? '(not chosen yet)';
+
+    const tBeforeLLM = Date.now();
+    console.log('[mini-chat] before LLM, ms=', tBeforeLLM - tStart);
 
     const response = await client.responses.create({
       model: 'gpt-5-mini',
@@ -388,6 +391,10 @@ Return JSON that matches the schema exactly.
         },
       ],
     });
+
+    const tAfterLLM = Date.now();
+console.log('[mini-chat] LLM call ms=', tAfterLLM - tBeforeLLM);
+console.log('[mini-chat] total route ms=', tAfterLLM - tStart);
 
     const rawText = response.output_text;
     if (!rawText) {
