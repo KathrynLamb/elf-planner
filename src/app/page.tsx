@@ -114,9 +114,9 @@ export function HeroSection({ onChatClick }: HeroProps) {
               Start chatting with Merry
             </button>
 
-            <p className="text-[11px] text-slate-200/90 sm:text-xs">
+            {/* <p className="text-[11px] text-slate-200/90 sm:text-xs">
               One-off $14.99 · Pay securely via PayPal · No subscriptions
-            </p>
+            </p> */}
           </div>
         </div>
       </div>
